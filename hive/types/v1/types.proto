@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package hive.types.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/hivegrid/proto/gen/go/hive/types/v1;typesv1";
+
+// GpuInfo describes a single accelerator visible to the daemon.
+message GpuInfo {
+  string vendor = 1; // "apple", "nvidia", "amd", "intel"
+  string model = 2;  // "Apple M2 Max", "NVIDIA GeForce RTX 4090"
+  uint64 vram_mb = 3;
+  string driver_version = 4;
+  // True for Apple Silicon and iGPUs where VRAM is shared with system RAM.
+  bool unified_memory = 5;
+  // Accelerator backend the runtime should use: "metal", "cuda12", "rocm",
+  // "vulkan", "cpu-avx2".
+  string accel = 6;
+}
+
+// CapabilityProfile is produced by hardware detection on the node and sent
+// during enrollment and in heartbeats when it changes.
+message CapabilityProfile {
+  string os = 1;   // "darwin", "linux", "windows"
+  string arch = 2; // "arm64", "amd64"
+  repeated GpuInfo gpus = 3;
+  uint64 ram_total_mb = 4;
+  uint32 cpu_cores = 5;
+  string cpu_model = 6;
+  uint64 disk_available_mb = 7;
+  double bandwidth_down_mbps = 8;
+  double bandwidth_up_mbps = 9;
+  string daemon_version = 10;
+  // Pinned llama.cpp (or other) runtime artifact identifier; part of the
+  // fingerprint trust tuple (model_sha, quant, runtime_build_id).
+  string runtime_build_id = 11;
+}
+
+// ModelSpec identifies one downloadable quantized model artifact.
+message ModelSpec {
+  string id = 1;      // "llama-3.1-8b-instruct-q4_k_m"
+  string family = 2;  // "llama-3.1"
+  double params_b = 3;
+  string quant = 4;   // "Q4_K_M"
+  string sha256 = 5;  // artifact hash; daemon refuses to serve on mismatch
+  uint64 min_vram_mb = 6;
+  uint64 min_ram_mb = 7;
+  string license = 8;
+  string artifact_url = 9;
+  uint64 size_bytes = 10;
+  // Payout class from the model catalog: "nano", "small", "mid", "large".
+  string payout_class = 11;
+  uint32 context_length = 12;
+  bool embeddings = 13; // model is served for /v1/embeddings
+}
+
+// ResourceBudget is the operator-configured ceiling the governor enforces.
+message ResourceBudget {
+  uint32 max_vram_percent = 1;
+  uint64 max_ram_mb = 2;
+  uint32 max_concurrent_requests = 3;
+  uint64 max_disk_mb = 4; // model cache budget (LRU eviction)
+  bool serve_on_battery = 5;
+  uint32 max_temp_celsius = 6;
+  // "always", "idle-only", "scheduled"
+  string serve_policy = 7;
+}
+
+// GenerationParams travel with every dispatch. Seed is always set so
+// retries and canary comparisons are deterministic for greedy decoding.
+message GenerationParams {
+  uint64 seed = 1;
+  double temperature = 2;
+  double top_p = 3;
+  uint32 max_tokens = 4;
+  repeated string stop = 5;
+  double frequency_penalty = 6;
+  double presence_penalty = 7;
+}
+
+message ChatMessage {
+  string role = 1; // "system", "user", "assistant", "tool"
+  string content = 2;
+}
+
+enum RequestKind {
+  REQUEST_KIND_UNSPECIFIED = 0;
+  REQUEST_KIND_CHAT = 1;
+  REQUEST_KIND_COMPLETION = 2;
+  REQUEST_KIND_EMBEDDING = 3;
+}
+
+// Privacy tier per SPEC §2.1.
+enum Tier {
+  TIER_UNSPECIFIED = 0;
+  TIER_OPEN = 1;
+  TIER_VERIFIED = 2;
+  TIER_PRIVATE = 3;
+}
+
+enum FinishReason {
+  FINISH_REASON_UNSPECIFIED = 0;
+  FINISH_REASON_STOP = 1;
+  FINISH_REASON_LENGTH = 2;
+  FINISH_REASON_CANCELLED = 3;
+  FINISH_REASON_ERROR = 4;
+}
+
+message Usage {
+  uint32 prompt_tokens = 1;
+  uint32 completion_tokens = 2;
+}
+
+// NodeState as reported in heartbeats.
+enum NodeState {
+  NODE_STATE_UNSPECIFIED = 0;
+  NODE_STATE_READY = 1;
+  NODE_STATE_BUSY = 2;
+  // Operator is using the machine; governor yielded. Not schedulable.
+  NODE_STATE_YIELDED = 3;
+  NODE_STATE_DRAINING = 4;
+}
+
+message ModelState {
+  string model_id = 1;
+  // "assigned", "downloading", "ready", "evicted"
+  string state = 2;
+  google.protobuf.Timestamp loaded_at = 3;
+}

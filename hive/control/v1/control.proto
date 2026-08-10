@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package hive.control.v1;
+
+import "google/protobuf/timestamp.proto";
+import "hive/types/v1/types.proto";
+
+option go_package = "github.com/hivegrid/proto/gen/go/hive/control/v1;controlv1";
+
+// ControlService is the internal control-plane contract: the gateway calls
+// the coordinator to route customer requests onto the mesh, and internal
+// tooling queries fleet state. Never exposed publicly.
+service ControlService {
+  // Route asks the coordinator to serve one inference request on the best
+  // candidate node (with retries on failure) and streams the result back.
+  rpc Route(RouteRequest) returns (stream RouteChunk);
+
+  // RouteEmbedding is the non-streaming embedding path.
+  rpc RouteEmbedding(RouteEmbeddingRequest) returns (RouteEmbeddingResponse);
+
+  // ListNodes returns registry + live state for ops tooling and the console.
+  rpc ListNodes(ListNodesRequest) returns (ListNodesResponse);
+
+  // FleetStatus returns aggregate capacity vs. demand per model.
+  rpc FleetStatus(FleetStatusRequest) returns (FleetStatusResponse);
+}
+
+message RouteRequest {
+  // Gateway-generated ID used for metering and idempotent retries; the
+  // coordinator maps it to a fresh ephemeral ID before dispatching so nodes
+  // never see it (identity stripping, SPEC §2.1).
+  string request_id = 1;
+  string model_id = 2;
+  hive.types.v1.RequestKind kind = 3;
+  hive.types.v1.Tier tier = 4;
+  hive.types.v1.GenerationParams params = 5;
+  repeated hive.types.v1.ChatMessage messages = 6;
+  string prompt = 7;
+  // Latency class: "interactive" or "batch". Batch is priced lower and may
+  // queue longer (SPEC §2.3 — batch is the wedge).
+  string latency_class = 8;
+  uint32 max_latency_ms = 9;
+}
+
+message RouteChunk {
+  string delta = 1;
+  bool done = 2;
+  hive.types.v1.FinishReason finish_reason = 3;
+  hive.types.v1.Usage usage = 4;
+  // Set on the final chunk: which node served it (for metering/payout).
+  string served_by_node_id = 5;
+  double tokens_per_sec = 6;
+  uint32 ttfb_ms = 7;
+}
+
+message RouteEmbeddingRequest {
+  string request_id = 1;
+  string model_id = 2;
+  hive.types.v1.Tier tier = 3;
+  repeated string input = 4;
+}
+
+message RouteEmbeddingResponse {
+  repeated float embeddings = 1; // row-major [input_count x dims]
+  uint32 dims = 2;
+  hive.types.v1.Usage usage = 3;
+  string served_by_node_id = 4;
+}
+
+message ListNodesRequest {
+  string status_filter = 1; // "", "online", "probation", "banned"
+  uint32 page_size = 2;
+  string page_token = 3;
+}
+
+message NodeSummary {
+  string node_id = 1;
+  string operator_id = 2;
+  hive.types.v1.NodeState state = 3;
+  hive.types.v1.CapabilityProfile capability = 4;
+  repeated hive.types.v1.ModelState models = 5;
+  double reputation = 6;
+  int64 staked_credits = 7;
+  google.protobuf.Timestamp last_seen = 8;
+  string status = 9; // "probation", "active", "banned"
+}
+
+message ListNodesResponse {
+  repeated NodeSummary nodes = 1;
+  string next_page_token = 2;
+}
+
+message FleetStatusRequest {}
+
+message ModelFleetStatus {
+  string model_id = 1;
+  uint32 nodes_ready = 2;
+  uint32 total_capacity_rps = 3;
+  double demand_rps_1m = 4;
+  double p50_ttfb_ms = 5;
+  double p95_ttfb_ms = 6;
+  double p50_tokens_per_sec = 7;
+}
+
+message FleetStatusResponse {
+  repeated ModelFleetStatus models = 1;
+  uint32 nodes_online = 2;
+  uint32 nodes_probation = 3;
+}

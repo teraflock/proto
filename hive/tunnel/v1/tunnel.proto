@@ -1,0 +1,195 @@
+syntax = "proto3";
+
+package hive.tunnel.v1;
+
+import "google/protobuf/timestamp.proto";
+import "hive/types/v1/types.proto";
+
+option go_package = "github.com/hivegrid/proto/gen/go/hive/tunnel/v1;tunnelv1";
+
+// TunnelService is the node<->coordinator contract. Nodes dial out and never
+// listen (SPEC §3): after Enroll, the daemon opens a single long-lived
+// Session stream over mTLS and all work is pushed down it.
+service TunnelService {
+  // Enroll binds a freshly generated Ed25519 key to an operator account via
+  // a claim code and returns the client certificate used for the mTLS
+  // Session. Called once on first run and again for cert rotation.
+  rpc Enroll(EnrollRequest) returns (EnrollResponse);
+
+  // Session is the persistent bidirectional tunnel. The node sends Hello
+  // first; the coordinator replies with HelloAck, then pushes dispatches,
+  // challenges, model assignments and config down the stream while the node
+  // streams heartbeats, token chunks and results up.
+  rpc Session(stream NodeMessage) returns (stream CoordinatorMessage);
+}
+
+message EnrollRequest {
+  // One-time claim code from web signup or `hive login` PKCE flow.
+  string claim_code = 1;
+  // Node's Ed25519 public key, raw 32 bytes. Node identity = its fingerprint.
+  bytes pubkey = 2;
+  // PEM-encoded CSR for the mTLS client certificate.
+  bytes csr_pem = 3;
+  hive.types.v1.CapabilityProfile capability = 4;
+}
+
+message EnrollResponse {
+  string node_id = 1;
+  bytes client_cert_pem = 2;
+  bytes ca_cert_pem = 3;
+  // Coordinator's dispatch-signing Ed25519 public key; the node pins this
+  // and verifies the signature on every DispatchRequest (SPEC §6).
+  bytes coordinator_pubkey = 4;
+  google.protobuf.Timestamp cert_expires_at = 5;
+}
+
+// ---- node -> coordinator ----
+
+message NodeMessage {
+  oneof msg {
+    Hello hello = 1;
+    Heartbeat heartbeat = 2;
+    TokenChunk token_chunk = 3;
+    DispatchAck dispatch_ack = 4;
+    ChallengeResponse challenge_response = 5;
+    ModelStateUpdate model_state = 6;
+    Goodbye goodbye = 7;
+    EmbeddingResult embedding_result = 8;
+  }
+}
+
+message Hello {
+  string node_id = 1;
+  string daemon_version = 2;
+  hive.types.v1.CapabilityProfile capability = 3;
+  repeated hive.types.v1.ModelState models = 4;
+  hive.types.v1.ResourceBudget budget = 5;
+}
+
+message Heartbeat {
+  hive.types.v1.NodeState state = 1;
+  uint32 queue_depth = 2;
+  double tokens_per_sec_1m = 3; // rolling 1-minute mean
+  double gpu_temp_celsius = 4;
+  bool on_battery = 5;
+  uint64 vram_used_mb = 6;
+  uint64 ram_used_mb = 7;
+  repeated hive.types.v1.ModelState models = 8;
+  google.protobuf.Timestamp at = 9;
+}
+
+// DispatchAck confirms receipt (or immediate rejection) of a dispatch so the
+// coordinator can retry elsewhere fast instead of waiting for the deadline.
+message DispatchAck {
+  string request_id = 1;
+  bool accepted = 2;
+  string reject_reason = 3; // "yielded", "model-not-ready", "over-capacity"
+}
+
+message TokenChunk {
+  string request_id = 1;
+  string delta = 2;
+  uint32 token_count = 3;
+  bool done = 4;
+  hive.types.v1.FinishReason finish_reason = 5;
+  hive.types.v1.Usage usage = 6; // set when done
+  string error = 7;              // set with FINISH_REASON_ERROR
+}
+
+message EmbeddingResult {
+  string request_id = 1;
+  // Flattened row-major [input_count x dims].
+  repeated float embeddings = 2;
+  uint32 dims = 3;
+  hive.types.v1.Usage usage = 4;
+  string error = 5;
+}
+
+message ChallengeResponse {
+  string challenge_id = 1;
+  string output = 2;
+  // SHA-256 of output; the coordinator compares against the private
+  // expected-output set for (model_sha, quant, runtime_build_id).
+  string output_sha256 = 3;
+  uint32 completion_tokens = 4;
+  double tokens_per_sec = 5;
+}
+
+message ModelStateUpdate {
+  hive.types.v1.ModelState model = 1;
+}
+
+// Goodbye is a graceful GOAWAY: the node is shutting down or yielding for an
+// extended period; the coordinator reroutes immediately.
+message Goodbye {
+  string reason = 1;
+  repeated string inflight_request_ids = 2; // being drained or cancelled
+}
+
+// ---- coordinator -> node ----
+
+message CoordinatorMessage {
+  oneof msg {
+    HelloAck hello_ack = 1;
+    DispatchRequest dispatch = 2;
+    CancelRequest cancel = 3;
+    Challenge challenge = 4;
+    ModelAssignment model_assignment = 5;
+    ConfigUpdate config = 6;
+    Drain drain = 7;
+  }
+}
+
+message HelloAck {
+  string session_id = 1;
+  uint32 heartbeat_interval_seconds = 2;
+  string min_supported_version = 3;
+}
+
+// DispatchRequest carries no customer identity (SPEC §2.1): request_id is a
+// per-request ephemeral ID. The signature covers the canonical serialization
+// of every field except `signature` itself, using the coordinator key pinned
+// at enrollment.
+message DispatchRequest {
+  string request_id = 1;
+  string model_id = 2;
+  string quant_sha256 = 3;
+  hive.types.v1.RequestKind kind = 4;
+  hive.types.v1.GenerationParams params = 5;
+  repeated hive.types.v1.ChatMessage messages = 6; // kind=CHAT
+  string prompt = 7;                               // kind=COMPLETION
+  repeated string embedding_input = 8;             // kind=EMBEDDING
+  google.protobuf.Timestamp deadline = 9;
+  bytes signature = 10;
+}
+
+message CancelRequest {
+  string request_id = 1;
+  string reason = 2;
+}
+
+// Challenge is a fingerprint probe (SPEC §2.2): fixed seed, greedy decode,
+// known expected output per (model_sha, quant, runtime_build_id).
+message Challenge {
+  string challenge_id = 1;
+  string model_id = 2;
+  string prompt = 3;
+  hive.types.v1.GenerationParams params = 4;
+}
+
+message ModelAssignment {
+  repeated hive.types.v1.ModelSpec assign = 1;
+  repeated string evict_model_ids = 2;
+}
+
+message ConfigUpdate {
+  uint32 heartbeat_interval_seconds = 1;
+  uint32 max_concurrent_requests = 2;
+}
+
+// Drain asks the node to finish in-flight work and stop accepting new
+// dispatches (e.g. deprecated daemon version, maintenance).
+message Drain {
+  string reason = 1;
+  google.protobuf.Timestamp deadline = 2;
+}

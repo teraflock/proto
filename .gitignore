@@ -1,0 +1,3 @@
+# generated Go is committed intentionally (consumers need it without codegen)
+*.swp
+.DS_Store
