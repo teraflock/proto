@@ -23,6 +23,12 @@ service ControlService {
 
   // FleetStatus returns aggregate capacity vs. demand per model.
   rpc FleetStatus(FleetStatusRequest) returns (FleetStatusResponse);
+
+  // ReinstateNode lifts a ban or slash lockout from ops tooling: the node's
+  // durable status returns to probation with a fresh initial reputation, and
+  // the live registry is updated so its next Hello is accepted. The daemon
+  // does not retry after a ban-drain, so the operator still restarts hived.
+  rpc ReinstateNode(ReinstateNodeRequest) returns (ReinstateNodeResponse);
 }
 
 message RouteRequest {
@@ -83,6 +89,9 @@ message NodeSummary {
   int64 staked_credits = 7;
   google.protobuf.Timestamp last_seen = 8;
   string status = 9; // "probation", "active", "banned"
+  // Whether the node currently holds a live tunnel session. Distinct from
+  // status: an active node can be disconnected, a probation node connected.
+  bool connected = 10;
 }
 
 message ListNodesResponse {
@@ -91,6 +100,15 @@ message ListNodesResponse {
 }
 
 message FleetStatusRequest {}
+
+message ReinstateNodeRequest {
+  string node_id = 1;
+  string reason = 2; // audit trail; free text ("false-positive timing ban")
+}
+
+message ReinstateNodeResponse {
+  NodeSummary node = 1;
+}
 
 message ModelFleetStatus {
   string model_id = 1;
