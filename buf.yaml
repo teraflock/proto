@@ -4,6 +4,14 @@ modules:
 lint:
   use:
     - STANDARD
+  ignore_only:
+    # Deliberate names: the tunnel is a symmetric bidi stream (NodeMessage /
+    # CoordinatorMessage), and Route streams chunks, not one response.
+    RPC_REQUEST_STANDARD_NAME:
+      - flock/tunnel/v1/tunnel.proto
+    RPC_RESPONSE_STANDARD_NAME:
+      - flock/tunnel/v1/tunnel.proto
+      - flock/control/v1/control.proto
 breaking:
   use:
     - FILE

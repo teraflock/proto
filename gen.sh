@@ -12,8 +12,8 @@ else
   protoc \
     --go_out=gen/go --go_opt=paths=source_relative \
     --go-grpc_out=gen/go --go-grpc_opt=paths=source_relative \
-    hive/types/v1/types.proto \
-    hive/tunnel/v1/tunnel.proto \
-    hive/control/v1/control.proto
+    flock/types/v1/types.proto \
+    flock/tunnel/v1/tunnel.proto \
+    flock/control/v1/control.proto
 fi
 echo "generated into gen/go/"

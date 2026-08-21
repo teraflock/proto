@@ -1,11 +1,11 @@
 syntax = "proto3";
 
-package hive.tunnel.v1;
+package flock.tunnel.v1;
 
 import "google/protobuf/timestamp.proto";
-import "hive/types/v1/types.proto";
+import "flock/types/v1/types.proto";
 
-option go_package = "github.com/hivegrid/proto/gen/go/hive/tunnel/v1;tunnelv1";
+option go_package = "github.com/teraflock/proto/gen/go/flock/tunnel/v1;tunnelv1";
 
 // TunnelService is the node<->coordinator contract. Nodes dial out and never
 // listen (SPEC §3): after Enroll, the daemon opens a single long-lived
@@ -24,13 +24,13 @@ service TunnelService {
 }
 
 message EnrollRequest {
-  // One-time claim code from web signup or `hive login` PKCE flow.
+  // One-time claim code from web signup or `flock login` PKCE flow.
   string claim_code = 1;
   // Node's Ed25519 public key, raw 32 bytes. Node identity = its fingerprint.
   bytes pubkey = 2;
   // PEM-encoded CSR for the mTLS client certificate.
   bytes csr_pem = 3;
-  hive.types.v1.CapabilityProfile capability = 4;
+  flock.types.v1.CapabilityProfile capability = 4;
 }
 
 message EnrollResponse {
@@ -61,20 +61,20 @@ message NodeMessage {
 message Hello {
   string node_id = 1;
   string daemon_version = 2;
-  hive.types.v1.CapabilityProfile capability = 3;
-  repeated hive.types.v1.ModelState models = 4;
-  hive.types.v1.ResourceBudget budget = 5;
+  flock.types.v1.CapabilityProfile capability = 3;
+  repeated flock.types.v1.ModelState models = 4;
+  flock.types.v1.ResourceBudget budget = 5;
 }
 
 message Heartbeat {
-  hive.types.v1.NodeState state = 1;
+  flock.types.v1.NodeState state = 1;
   uint32 queue_depth = 2;
   double tokens_per_sec_1m = 3; // rolling 1-minute mean
   double gpu_temp_celsius = 4;
   bool on_battery = 5;
   uint64 vram_used_mb = 6;
   uint64 ram_used_mb = 7;
-  repeated hive.types.v1.ModelState models = 8;
+  repeated flock.types.v1.ModelState models = 8;
   google.protobuf.Timestamp at = 9;
 }
 
@@ -91,8 +91,8 @@ message TokenChunk {
   string delta = 2;
   uint32 token_count = 3;
   bool done = 4;
-  hive.types.v1.FinishReason finish_reason = 5;
-  hive.types.v1.Usage usage = 6; // set when done
+  flock.types.v1.FinishReason finish_reason = 5;
+  flock.types.v1.Usage usage = 6; // set when done
   string error = 7;              // set with FINISH_REASON_ERROR
 }
 
@@ -101,7 +101,7 @@ message EmbeddingResult {
   // Flattened row-major [input_count x dims].
   repeated float embeddings = 2;
   uint32 dims = 3;
-  hive.types.v1.Usage usage = 4;
+  flock.types.v1.Usage usage = 4;
   string error = 5;
 }
 
@@ -116,7 +116,7 @@ message ChallengeResponse {
 }
 
 message ModelStateUpdate {
-  hive.types.v1.ModelState model = 1;
+  flock.types.v1.ModelState model = 1;
 }
 
 // Goodbye is a graceful GOAWAY: the node is shutting down or yielding for an
@@ -154,9 +154,9 @@ message DispatchRequest {
   string request_id = 1;
   string model_id = 2;
   string quant_sha256 = 3;
-  hive.types.v1.RequestKind kind = 4;
-  hive.types.v1.GenerationParams params = 5;
-  repeated hive.types.v1.ChatMessage messages = 6; // kind=CHAT
+  flock.types.v1.RequestKind kind = 4;
+  flock.types.v1.GenerationParams params = 5;
+  repeated flock.types.v1.ChatMessage messages = 6; // kind=CHAT
   string prompt = 7;                               // kind=COMPLETION
   repeated string embedding_input = 8;             // kind=EMBEDDING
   google.protobuf.Timestamp deadline = 9;
@@ -174,11 +174,11 @@ message Challenge {
   string challenge_id = 1;
   string model_id = 2;
   string prompt = 3;
-  hive.types.v1.GenerationParams params = 4;
+  flock.types.v1.GenerationParams params = 4;
 }
 
 message ModelAssignment {
-  repeated hive.types.v1.ModelSpec assign = 1;
+  repeated flock.types.v1.ModelSpec assign = 1;
   repeated string evict_model_ids = 2;
 }
 

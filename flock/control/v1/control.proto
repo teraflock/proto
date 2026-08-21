@@ -1,11 +1,11 @@
 syntax = "proto3";
 
-package hive.control.v1;
+package flock.control.v1;
 
 import "google/protobuf/timestamp.proto";
-import "hive/types/v1/types.proto";
+import "flock/types/v1/types.proto";
 
-option go_package = "github.com/hivegrid/proto/gen/go/hive/control/v1;controlv1";
+option go_package = "github.com/teraflock/proto/gen/go/flock/control/v1;controlv1";
 
 // ControlService is the internal control-plane contract: the gateway calls
 // the coordinator to route customer requests onto the mesh, and internal
@@ -27,7 +27,7 @@ service ControlService {
   // ReinstateNode lifts a ban or slash lockout from ops tooling: the node's
   // durable status returns to probation with a fresh initial reputation, and
   // the live registry is updated so its next Hello is accepted. The daemon
-  // does not retry after a ban-drain, so the operator still restarts hived.
+  // does not retry after a ban-drain, so the operator still restarts flockd.
   rpc ReinstateNode(ReinstateNodeRequest) returns (ReinstateNodeResponse);
 }
 
@@ -37,10 +37,10 @@ message RouteRequest {
   // never see it (identity stripping, SPEC §2.1).
   string request_id = 1;
   string model_id = 2;
-  hive.types.v1.RequestKind kind = 3;
-  hive.types.v1.Tier tier = 4;
-  hive.types.v1.GenerationParams params = 5;
-  repeated hive.types.v1.ChatMessage messages = 6;
+  flock.types.v1.RequestKind kind = 3;
+  flock.types.v1.Tier tier = 4;
+  flock.types.v1.GenerationParams params = 5;
+  repeated flock.types.v1.ChatMessage messages = 6;
   string prompt = 7;
   // Latency class: "interactive" or "batch". Batch is priced lower and may
   // queue longer (SPEC §2.3 — batch is the wedge).
@@ -51,8 +51,8 @@ message RouteRequest {
 message RouteChunk {
   string delta = 1;
   bool done = 2;
-  hive.types.v1.FinishReason finish_reason = 3;
-  hive.types.v1.Usage usage = 4;
+  flock.types.v1.FinishReason finish_reason = 3;
+  flock.types.v1.Usage usage = 4;
   // Set on the final chunk: which node served it (for metering/payout).
   string served_by_node_id = 5;
   double tokens_per_sec = 6;
@@ -62,14 +62,14 @@ message RouteChunk {
 message RouteEmbeddingRequest {
   string request_id = 1;
   string model_id = 2;
-  hive.types.v1.Tier tier = 3;
+  flock.types.v1.Tier tier = 3;
   repeated string input = 4;
 }
 
 message RouteEmbeddingResponse {
   repeated float embeddings = 1; // row-major [input_count x dims]
   uint32 dims = 2;
-  hive.types.v1.Usage usage = 3;
+  flock.types.v1.Usage usage = 3;
   string served_by_node_id = 4;
 }
 
@@ -82,9 +82,9 @@ message ListNodesRequest {
 message NodeSummary {
   string node_id = 1;
   string operator_id = 2;
-  hive.types.v1.NodeState state = 3;
-  hive.types.v1.CapabilityProfile capability = 4;
-  repeated hive.types.v1.ModelState models = 5;
+  flock.types.v1.NodeState state = 3;
+  flock.types.v1.CapabilityProfile capability = 4;
+  repeated flock.types.v1.ModelState models = 5;
   double reputation = 6;
   int64 staked_credits = 7;
   google.protobuf.Timestamp last_seen = 8;

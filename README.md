@@ -1,16 +1,16 @@
-# hivegrid/proto
+# teraflock/proto
 
-Protocol contracts for the HiveGrid mesh — the single shared dependency between the
-open-source node daemon ([hived](../hived)) and the private control plane.
+Protocol contracts for the Teraflock mesh — the single shared dependency between the
+open-source node daemon ([flockd](../flockd)) and the private control plane.
 Apache-2.0.
 
 ## Packages
 
 | Package | Purpose |
 |---|---|
-| `hive.types.v1` | Shared types: `CapabilityProfile`, `ModelSpec`, `ResourceBudget`, `GenerationParams`, tiers, node states |
-| `hive.tunnel.v1` | Node ↔ coordinator: `Enroll` + the persistent bidirectional `Session` stream (heartbeats, dispatch, token streaming, fingerprint challenges, model assignment, drain) |
-| `hive.control.v1` | Internal control-plane RPCs: gateway → coordinator routing, fleet/registry queries |
+| `flock.types.v1` | Shared types: `CapabilityProfile`, `ModelSpec`, `ResourceBudget`, `GenerationParams`, tiers, node states |
+| `flock.tunnel.v1` | Node ↔ coordinator: `Enroll` + the persistent bidirectional `Session` stream (heartbeats, dispatch, token streaming, fingerprint challenges, model assignment, drain) |
+| `flock.control.v1` | Internal control-plane RPCs: gateway → coordinator routing, fleet/registry queries |
 
 ## Design invariants
 
@@ -44,8 +44,8 @@ Consumers (until this is published to a real module path) use a sibling-checkout
 replace directive:
 
 ```
-require github.com/hivegrid/proto v0.0.0
-replace github.com/hivegrid/proto => ../proto
+require github.com/teraflock/proto v0.0.0
+replace github.com/teraflock/proto => ../proto
 ```
 
 TypeScript types for the console are generated in the control-plane repo's build

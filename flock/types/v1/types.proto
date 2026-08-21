@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package hive.types.v1;
+package flock.types.v1;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/hivegrid/proto/gen/go/hive/types/v1;typesv1";
+option go_package = "github.com/teraflock/proto/gen/go/flock/types/v1;typesv1";
 
 // GpuInfo describes a single accelerator visible to the daemon.
 message GpuInfo {
