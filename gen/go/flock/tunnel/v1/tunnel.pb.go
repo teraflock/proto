@@ -433,12 +433,15 @@ type Heartbeat struct {
 	TokensPerSec_1M float64                `protobuf:"fixed64,3,opt,name=tokens_per_sec_1m,json=tokensPerSec1m,proto3" json:"tokens_per_sec_1m,omitempty"` // rolling 1-minute mean
 	GpuTempCelsius  float64                `protobuf:"fixed64,4,opt,name=gpu_temp_celsius,json=gpuTempCelsius,proto3" json:"gpu_temp_celsius,omitempty"`
 	OnBattery       bool                   `protobuf:"varint,5,opt,name=on_battery,json=onBattery,proto3" json:"on_battery,omitempty"`
-	VramUsedMb      uint64                 `protobuf:"varint,6,opt,name=vram_used_mb,json=vramUsedMb,proto3" json:"vram_used_mb,omitempty"`
-	RamUsedMb       uint64                 `protobuf:"varint,7,opt,name=ram_used_mb,json=ramUsedMb,proto3" json:"ram_used_mb,omitempty"`
-	Models          []*v1.ModelState       `protobuf:"bytes,8,rep,name=models,proto3" json:"models,omitempty"`
-	At              *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=at,proto3" json:"at,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Measured footprint of the loaded model runtimes (physical footprint /
+	// proportional set size, not host-wide usage). On unified-memory
+	// machines both fields carry the same number.
+	VramUsedMb    uint64                 `protobuf:"varint,6,opt,name=vram_used_mb,json=vramUsedMb,proto3" json:"vram_used_mb,omitempty"`
+	RamUsedMb     uint64                 `protobuf:"varint,7,opt,name=ram_used_mb,json=ramUsedMb,proto3" json:"ram_used_mb,omitempty"`
+	Models        []*v1.ModelState       `protobuf:"bytes,8,rep,name=models,proto3" json:"models,omitempty"`
+	At            *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=at,proto3" json:"at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Heartbeat) Reset() {
@@ -597,14 +600,19 @@ func (x *DispatchAck) GetRejectReason() string {
 }
 
 type TokenChunk struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RequestId     string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	Delta         string                 `protobuf:"bytes,2,opt,name=delta,proto3" json:"delta,omitempty"`
-	TokenCount    uint32                 `protobuf:"varint,3,opt,name=token_count,json=tokenCount,proto3" json:"token_count,omitempty"`
-	Done          bool                   `protobuf:"varint,4,opt,name=done,proto3" json:"done,omitempty"`
-	FinishReason  v1.FinishReason        `protobuf:"varint,5,opt,name=finish_reason,json=finishReason,proto3,enum=flock.types.v1.FinishReason" json:"finish_reason,omitempty"`
-	Usage         *v1.Usage              `protobuf:"bytes,6,opt,name=usage,proto3" json:"usage,omitempty"` // set when done
-	Error         string                 `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"` // set with FINISH_REASON_ERROR
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	RequestId    string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	Delta        string                 `protobuf:"bytes,2,opt,name=delta,proto3" json:"delta,omitempty"`
+	TokenCount   uint32                 `protobuf:"varint,3,opt,name=token_count,json=tokenCount,proto3" json:"token_count,omitempty"`
+	Done         bool                   `protobuf:"varint,4,opt,name=done,proto3" json:"done,omitempty"`
+	FinishReason v1.FinishReason        `protobuf:"varint,5,opt,name=finish_reason,json=finishReason,proto3,enum=flock.types.v1.FinishReason" json:"finish_reason,omitempty"`
+	Usage        *v1.Usage              `protobuf:"bytes,6,opt,name=usage,proto3" json:"usage,omitempty"` // set when done
+	Error        string                 `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"` // set with FINISH_REASON_ERROR
+	// Chain-of-thought delta for reasoning models, separate from delta so
+	// the gateway can expose it as OpenAI's `reasoning_content`. Both are
+	// relayed in full: the customer is billed for reasoning tokens and
+	// canary comparison diffs the whole stream.
+	Reasoning     string `protobuf:"bytes,8,opt,name=reasoning,proto3" json:"reasoning,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -684,6 +692,13 @@ func (x *TokenChunk) GetUsage() *v1.Usage {
 func (x *TokenChunk) GetError() string {
 	if x != nil {
 		return x.Error
+	}
+	return ""
+}
+
+func (x *TokenChunk) GetReasoning() string {
+	if x != nil {
+		return x.Reasoning
 	}
 	return ""
 }
@@ -1406,9 +1421,14 @@ func (x *Challenge) GetParams() *v1.GenerationParams {
 }
 
 type ModelAssignment struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Assign        []*v1.ModelSpec        `protobuf:"bytes,1,rep,name=assign,proto3" json:"assign,omitempty"`
-	EvictModelIds []string               `protobuf:"bytes,2,rep,name=evict_model_ids,json=evictModelIds,proto3" json:"evict_model_ids,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Download if needed, load, report ready.
+	Assign        []*v1.ModelSpec `protobuf:"bytes,1,rep,name=assign,proto3" json:"assign,omitempty"`
+	EvictModelIds []string        `protobuf:"bytes,2,rep,name=evict_model_ids,json=evictModelIds,proto3" json:"evict_model_ids,omitempty"`
+	// Download if needed but do not load: report cached. Used by the floor
+	// pass to stage models that fit on disk but not in memory right now, so
+	// a later assign is a load, not a download.
+	Stage         []*v1.ModelSpec `protobuf:"bytes,3,rep,name=stage,proto3" json:"stage,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1457,12 +1477,25 @@ func (x *ModelAssignment) GetEvictModelIds() []string {
 	return nil
 }
 
+func (x *ModelAssignment) GetStage() []*v1.ModelSpec {
+	if x != nil {
+		return x.Stage
+	}
+	return nil
+}
+
 type ConfigUpdate struct {
 	state                    protoimpl.MessageState `protogen:"open.v1"`
 	HeartbeatIntervalSeconds uint32                 `protobuf:"varint,1,opt,name=heartbeat_interval_seconds,json=heartbeatIntervalSeconds,proto3" json:"heartbeat_interval_seconds,omitempty"`
 	MaxConcurrentRequests    uint32                 `protobuf:"varint,2,opt,name=max_concurrent_requests,json=maxConcurrentRequests,proto3" json:"max_concurrent_requests,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	// Daemon release channel, so a node learns it is outdated (or below the
+	// minimum the coordinator still serves) from the mesh itself, without
+	// reaching the public version feed. Empty = unknown.
+	LatestVersion  string `protobuf:"bytes,3,opt,name=latest_version,json=latestVersion,proto3" json:"latest_version,omitempty"`
+	MinimumVersion string `protobuf:"bytes,4,opt,name=minimum_version,json=minimumVersion,proto3" json:"minimum_version,omitempty"`
+	ReleaseUrl     string `protobuf:"bytes,5,opt,name=release_url,json=releaseUrl,proto3" json:"release_url,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ConfigUpdate) Reset() {
@@ -1507,6 +1540,27 @@ func (x *ConfigUpdate) GetMaxConcurrentRequests() uint32 {
 		return x.MaxConcurrentRequests
 	}
 	return 0
+}
+
+func (x *ConfigUpdate) GetLatestVersion() string {
+	if x != nil {
+		return x.LatestVersion
+	}
+	return ""
+}
+
+func (x *ConfigUpdate) GetMinimumVersion() string {
+	if x != nil {
+		return x.MinimumVersion
+	}
+	return ""
+}
+
+func (x *ConfigUpdate) GetReleaseUrl() string {
+	if x != nil {
+		return x.ReleaseUrl
+	}
+	return ""
 }
 
 // Drain asks the node to finish in-flight work and stop accepting new
@@ -1619,7 +1673,7 @@ const file_flock_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\x12\x1a\n" +
 	"\baccepted\x18\x02 \x01(\bR\baccepted\x12#\n" +
-	"\rreject_reason\x18\x03 \x01(\tR\frejectReason\"\xfc\x01\n" +
+	"\rreject_reason\x18\x03 \x01(\tR\frejectReason\"\x9a\x02\n" +
 	"\n" +
 	"TokenChunk\x12\x1d\n" +
 	"\n" +
@@ -1630,7 +1684,8 @@ const file_flock_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\x04done\x18\x04 \x01(\bR\x04done\x12A\n" +
 	"\rfinish_reason\x18\x05 \x01(\x0e2\x1c.flock.types.v1.FinishReasonR\ffinishReason\x12+\n" +
 	"\x05usage\x18\x06 \x01(\v2\x15.flock.types.v1.UsageR\x05usage\x12\x14\n" +
-	"\x05error\x18\a \x01(\tR\x05error\"\xa7\x01\n" +
+	"\x05error\x18\a \x01(\tR\x05error\x12\x1c\n" +
+	"\treasoning\x18\b \x01(\tR\treasoning\"\xa7\x01\n" +
 	"\x0fEmbeddingResult\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\x12\x1e\n" +
@@ -1686,13 +1741,18 @@ const file_flock_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\fchallenge_id\x18\x01 \x01(\tR\vchallengeId\x12\x19\n" +
 	"\bmodel_id\x18\x02 \x01(\tR\amodelId\x12\x16\n" +
 	"\x06prompt\x18\x03 \x01(\tR\x06prompt\x128\n" +
-	"\x06params\x18\x04 \x01(\v2 .flock.types.v1.GenerationParamsR\x06params\"l\n" +
+	"\x06params\x18\x04 \x01(\v2 .flock.types.v1.GenerationParamsR\x06params\"\x9d\x01\n" +
 	"\x0fModelAssignment\x121\n" +
 	"\x06assign\x18\x01 \x03(\v2\x19.flock.types.v1.ModelSpecR\x06assign\x12&\n" +
-	"\x0fevict_model_ids\x18\x02 \x03(\tR\revictModelIds\"\x84\x01\n" +
+	"\x0fevict_model_ids\x18\x02 \x03(\tR\revictModelIds\x12/\n" +
+	"\x05stage\x18\x03 \x03(\v2\x19.flock.types.v1.ModelSpecR\x05stage\"\xf5\x01\n" +
 	"\fConfigUpdate\x12<\n" +
 	"\x1aheartbeat_interval_seconds\x18\x01 \x01(\rR\x18heartbeatIntervalSeconds\x126\n" +
-	"\x17max_concurrent_requests\x18\x02 \x01(\rR\x15maxConcurrentRequests\"W\n" +
+	"\x17max_concurrent_requests\x18\x02 \x01(\rR\x15maxConcurrentRequests\x12%\n" +
+	"\x0elatest_version\x18\x03 \x01(\tR\rlatestVersion\x12'\n" +
+	"\x0fminimum_version\x18\x04 \x01(\tR\x0eminimumVersion\x12\x1f\n" +
+	"\vrelease_url\x18\x05 \x01(\tR\n" +
+	"releaseUrl\"W\n" +
 	"\x05Drain\x12\x16\n" +
 	"\x06reason\x18\x01 \x01(\tR\x06reason\x126\n" +
 	"\bdeadline\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\bdeadline2\xac\x01\n" +
@@ -1779,16 +1839,17 @@ var file_flock_tunnel_v1_tunnel_proto_depIdxs = []int32{
 	20, // 30: flock.tunnel.v1.DispatchRequest.deadline:type_name -> google.protobuf.Timestamp
 	27, // 31: flock.tunnel.v1.Challenge.params:type_name -> flock.types.v1.GenerationParams
 	29, // 32: flock.tunnel.v1.ModelAssignment.assign:type_name -> flock.types.v1.ModelSpec
-	20, // 33: flock.tunnel.v1.Drain.deadline:type_name -> google.protobuf.Timestamp
-	0,  // 34: flock.tunnel.v1.TunnelService.Enroll:input_type -> flock.tunnel.v1.EnrollRequest
-	2,  // 35: flock.tunnel.v1.TunnelService.Session:input_type -> flock.tunnel.v1.NodeMessage
-	1,  // 36: flock.tunnel.v1.TunnelService.Enroll:output_type -> flock.tunnel.v1.EnrollResponse
-	11, // 37: flock.tunnel.v1.TunnelService.Session:output_type -> flock.tunnel.v1.CoordinatorMessage
-	36, // [36:38] is the sub-list for method output_type
-	34, // [34:36] is the sub-list for method input_type
-	34, // [34:34] is the sub-list for extension type_name
-	34, // [34:34] is the sub-list for extension extendee
-	0,  // [0:34] is the sub-list for field type_name
+	29, // 33: flock.tunnel.v1.ModelAssignment.stage:type_name -> flock.types.v1.ModelSpec
+	20, // 34: flock.tunnel.v1.Drain.deadline:type_name -> google.protobuf.Timestamp
+	0,  // 35: flock.tunnel.v1.TunnelService.Enroll:input_type -> flock.tunnel.v1.EnrollRequest
+	2,  // 36: flock.tunnel.v1.TunnelService.Session:input_type -> flock.tunnel.v1.NodeMessage
+	1,  // 37: flock.tunnel.v1.TunnelService.Enroll:output_type -> flock.tunnel.v1.EnrollResponse
+	11, // 38: flock.tunnel.v1.TunnelService.Session:output_type -> flock.tunnel.v1.CoordinatorMessage
+	37, // [37:39] is the sub-list for method output_type
+	35, // [35:37] is the sub-list for method input_type
+	35, // [35:35] is the sub-list for extension type_name
+	35, // [35:35] is the sub-list for extension extendee
+	0,  // [0:35] is the sub-list for field type_name
 }
 
 func init() { file_flock_tunnel_v1_tunnel_proto_init() }

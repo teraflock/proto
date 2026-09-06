@@ -146,8 +146,10 @@ type RouteChunk struct {
 	ServedByNodeId string  `protobuf:"bytes,5,opt,name=served_by_node_id,json=servedByNodeId,proto3" json:"served_by_node_id,omitempty"`
 	TokensPerSec   float64 `protobuf:"fixed64,6,opt,name=tokens_per_sec,json=tokensPerSec,proto3" json:"tokens_per_sec,omitempty"`
 	TtfbMs         uint32  `protobuf:"varint,7,opt,name=ttfb_ms,json=ttfbMs,proto3" json:"ttfb_ms,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Chain-of-thought delta (see tunnel TokenChunk.reasoning).
+	Reasoning     string `protobuf:"bytes,8,opt,name=reasoning,proto3" json:"reasoning,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RouteChunk) Reset() {
@@ -227,6 +229,13 @@ func (x *RouteChunk) GetTtfbMs() uint32 {
 		return x.TtfbMs
 	}
 	return 0
+}
+
+func (x *RouteChunk) GetReasoning() string {
+	if x != nil {
+		return x.Reasoning
+	}
+	return ""
 }
 
 type RouteEmbeddingRequest struct {
@@ -438,7 +447,12 @@ type NodeSummary struct {
 	Status        string                 `protobuf:"bytes,9,opt,name=status,proto3" json:"status,omitempty"` // "probation", "active", "banned"
 	// Whether the node currently holds a live tunnel session. Distinct from
 	// status: an active node can be disconnected, a probation node connected.
-	Connected     bool `protobuf:"varint,10,opt,name=connected,proto3" json:"connected,omitempty"`
+	Connected bool `protobuf:"varint,10,opt,name=connected,proto3" json:"connected,omitempty"`
+	// Operator ceilings from the last Hello (placement respects them).
+	Budget *v1.ResourceBudget `protobuf:"bytes,11,opt,name=budget,proto3" json:"budget,omitempty"`
+	// Measured loaded-model memory from the last heartbeat.
+	RamUsedMb     uint64 `protobuf:"varint,12,opt,name=ram_used_mb,json=ramUsedMb,proto3" json:"ram_used_mb,omitempty"`
+	VramUsedMb    uint64 `protobuf:"varint,13,opt,name=vram_used_mb,json=vramUsedMb,proto3" json:"vram_used_mb,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -541,6 +555,27 @@ func (x *NodeSummary) GetConnected() bool {
 		return x.Connected
 	}
 	return false
+}
+
+func (x *NodeSummary) GetBudget() *v1.ResourceBudget {
+	if x != nil {
+		return x.Budget
+	}
+	return nil
+}
+
+func (x *NodeSummary) GetRamUsedMb() uint64 {
+	if x != nil {
+		return x.RamUsedMb
+	}
+	return 0
+}
+
+func (x *NodeSummary) GetVramUsedMb() uint64 {
+	if x != nil {
+		return x.VramUsedMb
+	}
+	return 0
 }
 
 type ListNodesResponse struct {
@@ -894,7 +929,7 @@ const file_flock_control_v1_control_proto_rawDesc = "" +
 	"\bmessages\x18\x06 \x03(\v2\x1b.flock.types.v1.ChatMessageR\bmessages\x12\x16\n" +
 	"\x06prompt\x18\a \x01(\tR\x06prompt\x12#\n" +
 	"\rlatency_class\x18\b \x01(\tR\flatencyClass\x12$\n" +
-	"\x0emax_latency_ms\x18\t \x01(\rR\fmaxLatencyMs\"\x90\x02\n" +
+	"\x0emax_latency_ms\x18\t \x01(\rR\fmaxLatencyMs\"\xae\x02\n" +
 	"\n" +
 	"RouteChunk\x12\x14\n" +
 	"\x05delta\x18\x01 \x01(\tR\x05delta\x12\x12\n" +
@@ -903,7 +938,8 @@ const file_flock_control_v1_control_proto_rawDesc = "" +
 	"\x05usage\x18\x04 \x01(\v2\x15.flock.types.v1.UsageR\x05usage\x12)\n" +
 	"\x11served_by_node_id\x18\x05 \x01(\tR\x0eservedByNodeId\x12$\n" +
 	"\x0etokens_per_sec\x18\x06 \x01(\x01R\ftokensPerSec\x12\x17\n" +
-	"\attfb_ms\x18\a \x01(\rR\x06ttfbMs\"\x91\x01\n" +
+	"\attfb_ms\x18\a \x01(\rR\x06ttfbMs\x12\x1c\n" +
+	"\treasoning\x18\b \x01(\tR\treasoning\"\x91\x01\n" +
 	"\x15RouteEmbeddingRequest\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\x12\x19\n" +
@@ -921,7 +957,7 @@ const file_flock_control_v1_control_proto_rawDesc = "" +
 	"\rstatus_filter\x18\x01 \x01(\tR\fstatusFilter\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\rR\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tR\tpageToken\"\xa5\x03\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"\x9f\x04\n" +
 	"\vNodeSummary\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x1f\n" +
 	"\voperator_id\x18\x02 \x01(\tR\n" +
@@ -938,7 +974,11 @@ const file_flock_control_v1_control_proto_rawDesc = "" +
 	"\tlast_seen\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\blastSeen\x12\x16\n" +
 	"\x06status\x18\t \x01(\tR\x06status\x12\x1c\n" +
 	"\tconnected\x18\n" +
-	" \x01(\bR\tconnected\"p\n" +
+	" \x01(\bR\tconnected\x126\n" +
+	"\x06budget\x18\v \x01(\v2\x1e.flock.types.v1.ResourceBudgetR\x06budget\x12\x1e\n" +
+	"\vram_used_mb\x18\f \x01(\x04R\tramUsedMb\x12 \n" +
+	"\fvram_used_mb\x18\r \x01(\x04R\n" +
+	"vramUsedMb\"p\n" +
 	"\x11ListNodesResponse\x123\n" +
 	"\x05nodes\x18\x01 \x03(\v2\x1d.flock.control.v1.NodeSummaryR\x05nodes\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x14\n" +
@@ -1004,6 +1044,7 @@ var file_flock_control_v1_control_proto_goTypes = []any{
 	(*v1.CapabilityProfile)(nil),   // 19: flock.types.v1.CapabilityProfile
 	(*v1.ModelState)(nil),          // 20: flock.types.v1.ModelState
 	(*timestamppb.Timestamp)(nil),  // 21: google.protobuf.Timestamp
+	(*v1.ResourceBudget)(nil),      // 22: flock.types.v1.ResourceBudget
 }
 var file_flock_control_v1_control_proto_depIdxs = []int32{
 	12, // 0: flock.control.v1.RouteRequest.kind:type_name -> flock.types.v1.RequestKind
@@ -1018,24 +1059,25 @@ var file_flock_control_v1_control_proto_depIdxs = []int32{
 	19, // 9: flock.control.v1.NodeSummary.capability:type_name -> flock.types.v1.CapabilityProfile
 	20, // 10: flock.control.v1.NodeSummary.models:type_name -> flock.types.v1.ModelState
 	21, // 11: flock.control.v1.NodeSummary.last_seen:type_name -> google.protobuf.Timestamp
-	5,  // 12: flock.control.v1.ListNodesResponse.nodes:type_name -> flock.control.v1.NodeSummary
-	5,  // 13: flock.control.v1.ReinstateNodeResponse.node:type_name -> flock.control.v1.NodeSummary
-	10, // 14: flock.control.v1.FleetStatusResponse.models:type_name -> flock.control.v1.ModelFleetStatus
-	0,  // 15: flock.control.v1.ControlService.Route:input_type -> flock.control.v1.RouteRequest
-	2,  // 16: flock.control.v1.ControlService.RouteEmbedding:input_type -> flock.control.v1.RouteEmbeddingRequest
-	4,  // 17: flock.control.v1.ControlService.ListNodes:input_type -> flock.control.v1.ListNodesRequest
-	7,  // 18: flock.control.v1.ControlService.FleetStatus:input_type -> flock.control.v1.FleetStatusRequest
-	8,  // 19: flock.control.v1.ControlService.ReinstateNode:input_type -> flock.control.v1.ReinstateNodeRequest
-	1,  // 20: flock.control.v1.ControlService.Route:output_type -> flock.control.v1.RouteChunk
-	3,  // 21: flock.control.v1.ControlService.RouteEmbedding:output_type -> flock.control.v1.RouteEmbeddingResponse
-	6,  // 22: flock.control.v1.ControlService.ListNodes:output_type -> flock.control.v1.ListNodesResponse
-	11, // 23: flock.control.v1.ControlService.FleetStatus:output_type -> flock.control.v1.FleetStatusResponse
-	9,  // 24: flock.control.v1.ControlService.ReinstateNode:output_type -> flock.control.v1.ReinstateNodeResponse
-	20, // [20:25] is the sub-list for method output_type
-	15, // [15:20] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	22, // 12: flock.control.v1.NodeSummary.budget:type_name -> flock.types.v1.ResourceBudget
+	5,  // 13: flock.control.v1.ListNodesResponse.nodes:type_name -> flock.control.v1.NodeSummary
+	5,  // 14: flock.control.v1.ReinstateNodeResponse.node:type_name -> flock.control.v1.NodeSummary
+	10, // 15: flock.control.v1.FleetStatusResponse.models:type_name -> flock.control.v1.ModelFleetStatus
+	0,  // 16: flock.control.v1.ControlService.Route:input_type -> flock.control.v1.RouteRequest
+	2,  // 17: flock.control.v1.ControlService.RouteEmbedding:input_type -> flock.control.v1.RouteEmbeddingRequest
+	4,  // 18: flock.control.v1.ControlService.ListNodes:input_type -> flock.control.v1.ListNodesRequest
+	7,  // 19: flock.control.v1.ControlService.FleetStatus:input_type -> flock.control.v1.FleetStatusRequest
+	8,  // 20: flock.control.v1.ControlService.ReinstateNode:input_type -> flock.control.v1.ReinstateNodeRequest
+	1,  // 21: flock.control.v1.ControlService.Route:output_type -> flock.control.v1.RouteChunk
+	3,  // 22: flock.control.v1.ControlService.RouteEmbedding:output_type -> flock.control.v1.RouteEmbeddingResponse
+	6,  // 23: flock.control.v1.ControlService.ListNodes:output_type -> flock.control.v1.ListNodesResponse
+	11, // 24: flock.control.v1.ControlService.FleetStatus:output_type -> flock.control.v1.FleetStatusResponse
+	9,  // 25: flock.control.v1.ControlService.ReinstateNode:output_type -> flock.control.v1.ReinstateNodeResponse
+	21, // [21:26] is the sub-list for method output_type
+	16, // [16:21] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_flock_control_v1_control_proto_init() }

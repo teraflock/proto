@@ -124,7 +124,13 @@ enum NodeState {
 
 message ModelState {
   string model_id = 1;
-  // "assigned", "downloading", "ready", "evicted"
+  // "assigned" (accepted, queued), "downloading", "ready" (loaded and
+  // serving), "cached" (on disk, not loaded: idle-unloaded or over the
+  // memory budget; the coordinator re-sends the assignment to load it),
+  // "declined" (operator policy), "failed" (error), "evicted".
   string state = 2;
   google.protobuf.Timestamp loaded_at = 3;
+  // Who installed it: "operator" (via app/CLI/config) or "mesh"
+  // (coordinator placement). The mesh only evicts its own.
+  string origin = 4;
 }

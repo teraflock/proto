@@ -57,6 +57,8 @@ message RouteChunk {
   string served_by_node_id = 5;
   double tokens_per_sec = 6;
   uint32 ttfb_ms = 7;
+  // Chain-of-thought delta (see tunnel TokenChunk.reasoning).
+  string reasoning = 8;
 }
 
 message RouteEmbeddingRequest {
@@ -92,6 +94,11 @@ message NodeSummary {
   // Whether the node currently holds a live tunnel session. Distinct from
   // status: an active node can be disconnected, a probation node connected.
   bool connected = 10;
+  // Operator ceilings from the last Hello (placement respects them).
+  flock.types.v1.ResourceBudget budget = 11;
+  // Measured loaded-model memory from the last heartbeat.
+  uint64 ram_used_mb = 12;
+  uint64 vram_used_mb = 13;
 }
 
 message ListNodesResponse {

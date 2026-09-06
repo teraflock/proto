@@ -892,9 +892,15 @@ func (x *Usage) GetCompletionTokens() uint32 {
 type ModelState struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	ModelId string                 `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	// "assigned", "downloading", "ready", "evicted"
-	State         string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
-	LoadedAt      *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=loaded_at,json=loadedAt,proto3" json:"loaded_at,omitempty"`
+	// "assigned" (accepted, queued), "downloading", "ready" (loaded and
+	// serving), "cached" (on disk, not loaded: idle-unloaded or over the
+	// memory budget; the coordinator re-sends the assignment to load it),
+	// "declined" (operator policy), "failed" (error), "evicted".
+	State    string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	LoadedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=loaded_at,json=loadedAt,proto3" json:"loaded_at,omitempty"`
+	// Who installed it: "operator" (via app/CLI/config) or "mesh"
+	// (coordinator placement). The mesh only evicts its own.
+	Origin        string `protobuf:"bytes,4,opt,name=origin,proto3" json:"origin,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -948,6 +954,13 @@ func (x *ModelState) GetLoadedAt() *timestamppb.Timestamp {
 		return x.LoadedAt
 	}
 	return nil
+}
+
+func (x *ModelState) GetOrigin() string {
+	if x != nil {
+		return x.Origin
+	}
+	return ""
 }
 
 var File_flock_types_v1_types_proto protoreflect.FileDescriptor
@@ -1018,12 +1031,13 @@ const file_flock_types_v1_types_proto_rawDesc = "" +
 	"\acontent\x18\x02 \x01(\tR\acontent\"Y\n" +
 	"\x05Usage\x12#\n" +
 	"\rprompt_tokens\x18\x01 \x01(\rR\fpromptTokens\x12+\n" +
-	"\x11completion_tokens\x18\x02 \x01(\rR\x10completionTokens\"v\n" +
+	"\x11completion_tokens\x18\x02 \x01(\rR\x10completionTokens\"\x8e\x01\n" +
 	"\n" +
 	"ModelState\x12\x19\n" +
 	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x127\n" +
-	"\tloaded_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\bloadedAt*{\n" +
+	"\tloaded_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\bloadedAt\x12\x16\n" +
+	"\x06origin\x18\x04 \x01(\tR\x06origin*{\n" +
 	"\vRequestKind\x12\x1c\n" +
 	"\x18REQUEST_KIND_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11REQUEST_KIND_CHAT\x10\x01\x12\x1b\n" +
