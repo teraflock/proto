@@ -59,3 +59,20 @@ TypeScript types for the console are generated in the control-plane repo's build
   `v1` package; incompatible changes mean a `v2` package.
 - Semver tags; the daemon reports its proto version indirectly via `daemon_version`
   in heartbeats, and the coordinator enforces `min_supported_version`.
+
+### Tagging
+
+`buf breaking` compares against the **last reachable semver tag**, so the tag
+is the gate: CI fails outright when no tag is reachable. `v0.1.0` is the
+contract flockd v0.5.0 / control-plane c4aaafb ship against.
+
+- Before opening a PR that touches `flock/`, run it locally:
+  `buf breaking --against ".git#tag=$(git describe --tags --abbrev=0)"`.
+- Every merged proto change gets a tag: **minor** bump for additive changes
+  (`v0.2.0`), **major** for breaking ones — and breaking needs the design
+  note plus a `min_daemon_version` plan so old nodes drain politely.
+  `git tag -a vX.Y.Z -m "..." && git push origin vX.Y.Z`.
+- Codegen is pinned in CI: `protoc-gen-go` follows the
+  `google.golang.org/protobuf` version in `go.mod` (bump both together);
+  `protoc-gen-go-grpc` is pinned explicitly in `.github/workflows/ci.yml`.
+  Regenerate with the same versions before committing `gen/`.

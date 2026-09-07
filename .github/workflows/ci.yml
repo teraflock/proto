@@ -18,17 +18,27 @@ jobs:
       - name: lint
         run: buf lint
       - name: breaking (against last tag)
+        # CLAUDE.md rule 1 / SPEC §A2.1: every proto change is gated by
+        # `buf breaking` against the last semver tag (v0.1.0 = the contract
+        # flockd v0.5.0 ships against). A missing tag is a CI failure, not a
+        # skip — the gate used to self-disable silently (proto#2).
         run: |
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -n "$LAST_TAG" ]; then
-            buf breaking --against ".git#tag=${LAST_TAG}"
-          else
-            echo "no tags yet; skipping breaking check"
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -z "$LAST_TAG" ]; then
+            echo "::error::no semver tag reachable from $(git rev-parse --short HEAD); tag the last merged contract (see README)"
+            exit 1
           fi
+          echo "checking against ${LAST_TAG}"
+          buf breaking --against ".git#tag=${LAST_TAG}"
       - name: verify generated code is current
+        # Pinned so the check is deterministic: protoc-gen-go tracks the
+        # google.golang.org/protobuf version in go.mod (bump both together);
+        # protoc-gen-go-grpc is its own module, pinned to the version stamped
+        # in gen/go/**/*_grpc.pb.go.
         run: |
-          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          PROTOBUF_VERSION=$(go list -m -f '{{.Version}}' google.golang.org/protobuf)
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@${PROTOBUF_VERSION}
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.2
           buf generate
           git diff --exit-code gen/
       - name: build
