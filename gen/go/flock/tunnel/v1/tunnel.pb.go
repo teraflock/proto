@@ -981,6 +981,7 @@ type CoordinatorMessage struct {
 	//	*CoordinatorMessage_ModelAssignment
 	//	*CoordinatorMessage_Config
 	//	*CoordinatorMessage_Drain
+	//	*CoordinatorMessage_Earnings
 	Msg           isCoordinatorMessage_Msg `protobuf_oneof:"msg"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1086,6 +1087,15 @@ func (x *CoordinatorMessage) GetDrain() *Drain {
 	return nil
 }
 
+func (x *CoordinatorMessage) GetEarnings() *EarningsSnapshot {
+	if x != nil {
+		if x, ok := x.Msg.(*CoordinatorMessage_Earnings); ok {
+			return x.Earnings
+		}
+	}
+	return nil
+}
+
 type isCoordinatorMessage_Msg interface {
 	isCoordinatorMessage_Msg()
 }
@@ -1118,6 +1128,10 @@ type CoordinatorMessage_Drain struct {
 	Drain *Drain `protobuf:"bytes,7,opt,name=drain,proto3,oneof"`
 }
 
+type CoordinatorMessage_Earnings struct {
+	Earnings *EarningsSnapshot `protobuf:"bytes,8,opt,name=earnings,proto3,oneof"`
+}
+
 func (*CoordinatorMessage_HelloAck) isCoordinatorMessage_Msg() {}
 
 func (*CoordinatorMessage_Dispatch) isCoordinatorMessage_Msg() {}
@@ -1131,6 +1145,8 @@ func (*CoordinatorMessage_ModelAssignment) isCoordinatorMessage_Msg() {}
 func (*CoordinatorMessage_Config) isCoordinatorMessage_Msg() {}
 
 func (*CoordinatorMessage_Drain) isCoordinatorMessage_Msg() {}
+
+func (*CoordinatorMessage_Earnings) isCoordinatorMessage_Msg() {}
 
 type HelloAck struct {
 	state                    protoimpl.MessageState `protogen:"open.v1"`
@@ -1631,6 +1647,135 @@ func (x *Drain) GetDeadline() *timestamppb.Timestamp {
 	return nil
 }
 
+// EarningsSnapshot is the operator's ledger position, pushed by the
+// coordinator right after HelloAck, every push_interval_seconds, and shortly
+// after each metered request this node served — so the daemon's earnings
+// surfaces (`tera earnings`, the TUI, the desktop) show ledger-backed
+// numbers instead of a local estimate. Every figure is for the OPERATOR
+// ACCOUNT the node is enrolled under (all of that operator's nodes
+// together), never this node alone: the ledger is per operator (SPEC §4.5).
+// Amounts are integer ledger credits; credits_per_usd is the coordinator's
+// peg, and the daemon does no conversion policy of its own. Daemons that
+// predate this message ignore it (an unknown oneof member).
+type EarningsSnapshot struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Settled: vested credits in the operator's main account, redeemable.
+	AvailableCredits int64 `protobuf:"varint,1,opt,name=available_credits,json=availableCredits,proto3" json:"available_credits,omitempty"`
+	// Pending: credits in escrow, vesting after the canary window
+	// (SPEC §4.5); slashable until then.
+	EscrowCredits int64 `protobuf:"varint,2,opt,name=escrow_credits,json=escrowCredits,proto3" json:"escrow_credits,omitempty"`
+	// The internal peg (1 credit = $0.000001 at launch).
+	CreditsPerUsd uint64 `protobuf:"varint,3,opt,name=credits_per_usd,json=creditsPerUsd,proto3" json:"credits_per_usd,omitempty"`
+	// Payout credits earned (escrow + vested) since 00:00 UTC today.
+	EarnedTodayCredits int64 `protobuf:"varint,4,opt,name=earned_today_credits,json=earnedTodayCredits,proto3" json:"earned_today_credits,omitempty"`
+	// Payout credits earned in the trailing seven days.
+	Earned_7DCredits int64 `protobuf:"varint,5,opt,name=earned_7d_credits,json=earned7dCredits,proto3" json:"earned_7d_credits,omitempty"`
+	// Payout credits earned since the account was opened.
+	LifetimePayoutCredits int64 `protobuf:"varint,6,opt,name=lifetime_payout_credits,json=lifetimePayoutCredits,proto3" json:"lifetime_payout_credits,omitempty"`
+	// When the coordinator read the ledger.
+	AsOf *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=as_of,json=asOf,proto3" json:"as_of,omitempty"`
+	// When the oldest open escrow lot vests; unset with nothing in escrow.
+	NextVestAt *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=next_vest_at,json=nextVestAt,proto3" json:"next_vest_at,omitempty"`
+	// The periodic cadence, so the daemon can tell a stale snapshot (older
+	// than two intervals) from a fresh one and fall back to its estimate.
+	PushIntervalSeconds uint32 `protobuf:"varint,9,opt,name=push_interval_seconds,json=pushIntervalSeconds,proto3" json:"push_interval_seconds,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *EarningsSnapshot) Reset() {
+	*x = EarningsSnapshot{}
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EarningsSnapshot) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EarningsSnapshot) ProtoMessage() {}
+
+func (x *EarningsSnapshot) ProtoReflect() protoreflect.Message {
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EarningsSnapshot.ProtoReflect.Descriptor instead.
+func (*EarningsSnapshot) Descriptor() ([]byte, []int) {
+	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *EarningsSnapshot) GetAvailableCredits() int64 {
+	if x != nil {
+		return x.AvailableCredits
+	}
+	return 0
+}
+
+func (x *EarningsSnapshot) GetEscrowCredits() int64 {
+	if x != nil {
+		return x.EscrowCredits
+	}
+	return 0
+}
+
+func (x *EarningsSnapshot) GetCreditsPerUsd() uint64 {
+	if x != nil {
+		return x.CreditsPerUsd
+	}
+	return 0
+}
+
+func (x *EarningsSnapshot) GetEarnedTodayCredits() int64 {
+	if x != nil {
+		return x.EarnedTodayCredits
+	}
+	return 0
+}
+
+func (x *EarningsSnapshot) GetEarned_7DCredits() int64 {
+	if x != nil {
+		return x.Earned_7DCredits
+	}
+	return 0
+}
+
+func (x *EarningsSnapshot) GetLifetimePayoutCredits() int64 {
+	if x != nil {
+		return x.LifetimePayoutCredits
+	}
+	return 0
+}
+
+func (x *EarningsSnapshot) GetAsOf() *timestamppb.Timestamp {
+	if x != nil {
+		return x.AsOf
+	}
+	return nil
+}
+
+func (x *EarningsSnapshot) GetNextVestAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.NextVestAt
+	}
+	return nil
+}
+
+func (x *EarningsSnapshot) GetPushIntervalSeconds() uint32 {
+	if x != nil {
+		return x.PushIntervalSeconds
+	}
+	return 0
+}
+
 var File_flock_tunnel_v1_tunnel_proto protoreflect.FileDescriptor
 
 const file_flock_tunnel_v1_tunnel_proto_rawDesc = "" +
@@ -1720,7 +1865,7 @@ const file_flock_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\x05model\x18\x01 \x01(\v2\x1a.flock.types.v1.ModelStateR\x05model\"S\n" +
 	"\aGoodbye\x12\x16\n" +
 	"\x06reason\x18\x01 \x01(\tR\x06reason\x120\n" +
-	"\x14inflight_request_ids\x18\x02 \x03(\tR\x12inflightRequestIds\"\xc3\x03\n" +
+	"\x14inflight_request_ids\x18\x02 \x03(\tR\x12inflightRequestIds\"\x84\x04\n" +
 	"\x12CoordinatorMessage\x128\n" +
 	"\thello_ack\x18\x01 \x01(\v2\x19.flock.tunnel.v1.HelloAckH\x00R\bhelloAck\x12>\n" +
 	"\bdispatch\x18\x02 \x01(\v2 .flock.tunnel.v1.DispatchRequestH\x00R\bdispatch\x128\n" +
@@ -1728,7 +1873,8 @@ const file_flock_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\tchallenge\x18\x04 \x01(\v2\x1a.flock.tunnel.v1.ChallengeH\x00R\tchallenge\x12M\n" +
 	"\x10model_assignment\x18\x05 \x01(\v2 .flock.tunnel.v1.ModelAssignmentH\x00R\x0fmodelAssignment\x127\n" +
 	"\x06config\x18\x06 \x01(\v2\x1d.flock.tunnel.v1.ConfigUpdateH\x00R\x06config\x12.\n" +
-	"\x05drain\x18\a \x01(\v2\x16.flock.tunnel.v1.DrainH\x00R\x05drainB\x05\n" +
+	"\x05drain\x18\a \x01(\v2\x16.flock.tunnel.v1.DrainH\x00R\x05drain\x12?\n" +
+	"\bearnings\x18\b \x01(\v2!.flock.tunnel.v1.EarningsSnapshotH\x00R\bearningsB\x05\n" +
 	"\x03msg\"\x9b\x01\n" +
 	"\bHelloAck\x12\x1d\n" +
 	"\n" +
@@ -1770,7 +1916,18 @@ const file_flock_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"releaseUrl\"W\n" +
 	"\x05Drain\x12\x16\n" +
 	"\x06reason\x18\x01 \x01(\tR\x06reason\x126\n" +
-	"\bdeadline\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\bdeadline2\xac\x01\n" +
+	"\bdeadline\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\bdeadline\"\xc7\x03\n" +
+	"\x10EarningsSnapshot\x12+\n" +
+	"\x11available_credits\x18\x01 \x01(\x03R\x10availableCredits\x12%\n" +
+	"\x0eescrow_credits\x18\x02 \x01(\x03R\rescrowCredits\x12&\n" +
+	"\x0fcredits_per_usd\x18\x03 \x01(\x04R\rcreditsPerUsd\x120\n" +
+	"\x14earned_today_credits\x18\x04 \x01(\x03R\x12earnedTodayCredits\x12*\n" +
+	"\x11earned_7d_credits\x18\x05 \x01(\x03R\x0fearned7dCredits\x126\n" +
+	"\x17lifetime_payout_credits\x18\x06 \x01(\x03R\x15lifetimePayoutCredits\x12/\n" +
+	"\x05as_of\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x04asOf\x12<\n" +
+	"\fnext_vest_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"nextVestAt\x122\n" +
+	"\x15push_interval_seconds\x18\t \x01(\rR\x13pushIntervalSeconds2\xac\x01\n" +
 	"\rTunnelService\x12I\n" +
 	"\x06Enroll\x12\x1e.flock.tunnel.v1.EnrollRequest\x1a\x1f.flock.tunnel.v1.EnrollResponse\x12P\n" +
 	"\aSession\x12\x1c.flock.tunnel.v1.NodeMessage\x1a#.flock.tunnel.v1.CoordinatorMessage(\x010\x01B<Z:github.com/teraflock/proto/gen/go/flock/tunnel/v1;tunnelv1b\x06proto3"
@@ -1787,7 +1944,7 @@ func file_flock_tunnel_v1_tunnel_proto_rawDescGZIP() []byte {
 	return file_flock_tunnel_v1_tunnel_proto_rawDescData
 }
 
-var file_flock_tunnel_v1_tunnel_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_flock_tunnel_v1_tunnel_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_flock_tunnel_v1_tunnel_proto_goTypes = []any{
 	(*EnrollRequest)(nil),         // 0: flock.tunnel.v1.EnrollRequest
 	(*EnrollResponse)(nil),        // 1: flock.tunnel.v1.EnrollResponse
@@ -1808,21 +1965,22 @@ var file_flock_tunnel_v1_tunnel_proto_goTypes = []any{
 	(*ModelAssignment)(nil),       // 16: flock.tunnel.v1.ModelAssignment
 	(*ConfigUpdate)(nil),          // 17: flock.tunnel.v1.ConfigUpdate
 	(*Drain)(nil),                 // 18: flock.tunnel.v1.Drain
-	(*v1.CapabilityProfile)(nil),  // 19: flock.types.v1.CapabilityProfile
-	(*timestamppb.Timestamp)(nil), // 20: google.protobuf.Timestamp
-	(*v1.ModelState)(nil),         // 21: flock.types.v1.ModelState
-	(*v1.ResourceBudget)(nil),     // 22: flock.types.v1.ResourceBudget
-	(v1.NodeState)(0),             // 23: flock.types.v1.NodeState
-	(v1.FinishReason)(0),          // 24: flock.types.v1.FinishReason
-	(*v1.Usage)(nil),              // 25: flock.types.v1.Usage
-	(v1.RequestKind)(0),           // 26: flock.types.v1.RequestKind
-	(*v1.GenerationParams)(nil),   // 27: flock.types.v1.GenerationParams
-	(*v1.ChatMessage)(nil),        // 28: flock.types.v1.ChatMessage
-	(*v1.ModelSpec)(nil),          // 29: flock.types.v1.ModelSpec
+	(*EarningsSnapshot)(nil),      // 19: flock.tunnel.v1.EarningsSnapshot
+	(*v1.CapabilityProfile)(nil),  // 20: flock.types.v1.CapabilityProfile
+	(*timestamppb.Timestamp)(nil), // 21: google.protobuf.Timestamp
+	(*v1.ModelState)(nil),         // 22: flock.types.v1.ModelState
+	(*v1.ResourceBudget)(nil),     // 23: flock.types.v1.ResourceBudget
+	(v1.NodeState)(0),             // 24: flock.types.v1.NodeState
+	(v1.FinishReason)(0),          // 25: flock.types.v1.FinishReason
+	(*v1.Usage)(nil),              // 26: flock.types.v1.Usage
+	(v1.RequestKind)(0),           // 27: flock.types.v1.RequestKind
+	(*v1.GenerationParams)(nil),   // 28: flock.types.v1.GenerationParams
+	(*v1.ChatMessage)(nil),        // 29: flock.types.v1.ChatMessage
+	(*v1.ModelSpec)(nil),          // 30: flock.types.v1.ModelSpec
 }
 var file_flock_tunnel_v1_tunnel_proto_depIdxs = []int32{
-	19, // 0: flock.tunnel.v1.EnrollRequest.capability:type_name -> flock.types.v1.CapabilityProfile
-	20, // 1: flock.tunnel.v1.EnrollResponse.cert_expires_at:type_name -> google.protobuf.Timestamp
+	20, // 0: flock.tunnel.v1.EnrollRequest.capability:type_name -> flock.types.v1.CapabilityProfile
+	21, // 1: flock.tunnel.v1.EnrollResponse.cert_expires_at:type_name -> google.protobuf.Timestamp
 	3,  // 2: flock.tunnel.v1.NodeMessage.hello:type_name -> flock.tunnel.v1.Hello
 	4,  // 3: flock.tunnel.v1.NodeMessage.heartbeat:type_name -> flock.tunnel.v1.Heartbeat
 	6,  // 4: flock.tunnel.v1.NodeMessage.token_chunk:type_name -> flock.tunnel.v1.TokenChunk
@@ -1831,16 +1989,16 @@ var file_flock_tunnel_v1_tunnel_proto_depIdxs = []int32{
 	9,  // 7: flock.tunnel.v1.NodeMessage.model_state:type_name -> flock.tunnel.v1.ModelStateUpdate
 	10, // 8: flock.tunnel.v1.NodeMessage.goodbye:type_name -> flock.tunnel.v1.Goodbye
 	7,  // 9: flock.tunnel.v1.NodeMessage.embedding_result:type_name -> flock.tunnel.v1.EmbeddingResult
-	19, // 10: flock.tunnel.v1.Hello.capability:type_name -> flock.types.v1.CapabilityProfile
-	21, // 11: flock.tunnel.v1.Hello.models:type_name -> flock.types.v1.ModelState
-	22, // 12: flock.tunnel.v1.Hello.budget:type_name -> flock.types.v1.ResourceBudget
-	23, // 13: flock.tunnel.v1.Heartbeat.state:type_name -> flock.types.v1.NodeState
-	21, // 14: flock.tunnel.v1.Heartbeat.models:type_name -> flock.types.v1.ModelState
-	20, // 15: flock.tunnel.v1.Heartbeat.at:type_name -> google.protobuf.Timestamp
-	24, // 16: flock.tunnel.v1.TokenChunk.finish_reason:type_name -> flock.types.v1.FinishReason
-	25, // 17: flock.tunnel.v1.TokenChunk.usage:type_name -> flock.types.v1.Usage
-	25, // 18: flock.tunnel.v1.EmbeddingResult.usage:type_name -> flock.types.v1.Usage
-	21, // 19: flock.tunnel.v1.ModelStateUpdate.model:type_name -> flock.types.v1.ModelState
+	20, // 10: flock.tunnel.v1.Hello.capability:type_name -> flock.types.v1.CapabilityProfile
+	22, // 11: flock.tunnel.v1.Hello.models:type_name -> flock.types.v1.ModelState
+	23, // 12: flock.tunnel.v1.Hello.budget:type_name -> flock.types.v1.ResourceBudget
+	24, // 13: flock.tunnel.v1.Heartbeat.state:type_name -> flock.types.v1.NodeState
+	22, // 14: flock.tunnel.v1.Heartbeat.models:type_name -> flock.types.v1.ModelState
+	21, // 15: flock.tunnel.v1.Heartbeat.at:type_name -> google.protobuf.Timestamp
+	25, // 16: flock.tunnel.v1.TokenChunk.finish_reason:type_name -> flock.types.v1.FinishReason
+	26, // 17: flock.tunnel.v1.TokenChunk.usage:type_name -> flock.types.v1.Usage
+	26, // 18: flock.tunnel.v1.EmbeddingResult.usage:type_name -> flock.types.v1.Usage
+	22, // 19: flock.tunnel.v1.ModelStateUpdate.model:type_name -> flock.types.v1.ModelState
 	12, // 20: flock.tunnel.v1.CoordinatorMessage.hello_ack:type_name -> flock.tunnel.v1.HelloAck
 	13, // 21: flock.tunnel.v1.CoordinatorMessage.dispatch:type_name -> flock.tunnel.v1.DispatchRequest
 	14, // 22: flock.tunnel.v1.CoordinatorMessage.cancel:type_name -> flock.tunnel.v1.CancelRequest
@@ -1848,23 +2006,26 @@ var file_flock_tunnel_v1_tunnel_proto_depIdxs = []int32{
 	16, // 24: flock.tunnel.v1.CoordinatorMessage.model_assignment:type_name -> flock.tunnel.v1.ModelAssignment
 	17, // 25: flock.tunnel.v1.CoordinatorMessage.config:type_name -> flock.tunnel.v1.ConfigUpdate
 	18, // 26: flock.tunnel.v1.CoordinatorMessage.drain:type_name -> flock.tunnel.v1.Drain
-	26, // 27: flock.tunnel.v1.DispatchRequest.kind:type_name -> flock.types.v1.RequestKind
-	27, // 28: flock.tunnel.v1.DispatchRequest.params:type_name -> flock.types.v1.GenerationParams
-	28, // 29: flock.tunnel.v1.DispatchRequest.messages:type_name -> flock.types.v1.ChatMessage
-	20, // 30: flock.tunnel.v1.DispatchRequest.deadline:type_name -> google.protobuf.Timestamp
-	27, // 31: flock.tunnel.v1.Challenge.params:type_name -> flock.types.v1.GenerationParams
-	29, // 32: flock.tunnel.v1.ModelAssignment.assign:type_name -> flock.types.v1.ModelSpec
-	29, // 33: flock.tunnel.v1.ModelAssignment.stage:type_name -> flock.types.v1.ModelSpec
-	20, // 34: flock.tunnel.v1.Drain.deadline:type_name -> google.protobuf.Timestamp
-	0,  // 35: flock.tunnel.v1.TunnelService.Enroll:input_type -> flock.tunnel.v1.EnrollRequest
-	2,  // 36: flock.tunnel.v1.TunnelService.Session:input_type -> flock.tunnel.v1.NodeMessage
-	1,  // 37: flock.tunnel.v1.TunnelService.Enroll:output_type -> flock.tunnel.v1.EnrollResponse
-	11, // 38: flock.tunnel.v1.TunnelService.Session:output_type -> flock.tunnel.v1.CoordinatorMessage
-	37, // [37:39] is the sub-list for method output_type
-	35, // [35:37] is the sub-list for method input_type
-	35, // [35:35] is the sub-list for extension type_name
-	35, // [35:35] is the sub-list for extension extendee
-	0,  // [0:35] is the sub-list for field type_name
+	19, // 27: flock.tunnel.v1.CoordinatorMessage.earnings:type_name -> flock.tunnel.v1.EarningsSnapshot
+	27, // 28: flock.tunnel.v1.DispatchRequest.kind:type_name -> flock.types.v1.RequestKind
+	28, // 29: flock.tunnel.v1.DispatchRequest.params:type_name -> flock.types.v1.GenerationParams
+	29, // 30: flock.tunnel.v1.DispatchRequest.messages:type_name -> flock.types.v1.ChatMessage
+	21, // 31: flock.tunnel.v1.DispatchRequest.deadline:type_name -> google.protobuf.Timestamp
+	28, // 32: flock.tunnel.v1.Challenge.params:type_name -> flock.types.v1.GenerationParams
+	30, // 33: flock.tunnel.v1.ModelAssignment.assign:type_name -> flock.types.v1.ModelSpec
+	30, // 34: flock.tunnel.v1.ModelAssignment.stage:type_name -> flock.types.v1.ModelSpec
+	21, // 35: flock.tunnel.v1.Drain.deadline:type_name -> google.protobuf.Timestamp
+	21, // 36: flock.tunnel.v1.EarningsSnapshot.as_of:type_name -> google.protobuf.Timestamp
+	21, // 37: flock.tunnel.v1.EarningsSnapshot.next_vest_at:type_name -> google.protobuf.Timestamp
+	0,  // 38: flock.tunnel.v1.TunnelService.Enroll:input_type -> flock.tunnel.v1.EnrollRequest
+	2,  // 39: flock.tunnel.v1.TunnelService.Session:input_type -> flock.tunnel.v1.NodeMessage
+	1,  // 40: flock.tunnel.v1.TunnelService.Enroll:output_type -> flock.tunnel.v1.EnrollResponse
+	11, // 41: flock.tunnel.v1.TunnelService.Session:output_type -> flock.tunnel.v1.CoordinatorMessage
+	40, // [40:42] is the sub-list for method output_type
+	38, // [38:40] is the sub-list for method input_type
+	38, // [38:38] is the sub-list for extension type_name
+	38, // [38:38] is the sub-list for extension extendee
+	0,  // [0:38] is the sub-list for field type_name
 }
 
 func init() { file_flock_tunnel_v1_tunnel_proto_init() }
@@ -1890,6 +2051,7 @@ func file_flock_tunnel_v1_tunnel_proto_init() {
 		(*CoordinatorMessage_ModelAssignment)(nil),
 		(*CoordinatorMessage_Config)(nil),
 		(*CoordinatorMessage_Drain)(nil),
+		(*CoordinatorMessage_Earnings)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -1897,7 +2059,7 @@ func file_flock_tunnel_v1_tunnel_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_flock_tunnel_v1_tunnel_proto_rawDesc), len(file_flock_tunnel_v1_tunnel_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   19,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

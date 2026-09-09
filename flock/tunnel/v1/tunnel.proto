@@ -152,6 +152,7 @@ message CoordinatorMessage {
     ModelAssignment model_assignment = 5;
     ConfigUpdate config = 6;
     Drain drain = 7;
+    EarningsSnapshot earnings = 8;
   }
 }
 
@@ -218,4 +219,37 @@ message ConfigUpdate {
 message Drain {
   string reason = 1;
   google.protobuf.Timestamp deadline = 2;
+}
+
+// EarningsSnapshot is the operator's ledger position, pushed by the
+// coordinator right after HelloAck, every push_interval_seconds, and shortly
+// after each metered request this node served — so the daemon's earnings
+// surfaces (`tera earnings`, the TUI, the desktop) show ledger-backed
+// numbers instead of a local estimate. Every figure is for the OPERATOR
+// ACCOUNT the node is enrolled under (all of that operator's nodes
+// together), never this node alone: the ledger is per operator (SPEC §4.5).
+// Amounts are integer ledger credits; credits_per_usd is the coordinator's
+// peg, and the daemon does no conversion policy of its own. Daemons that
+// predate this message ignore it (an unknown oneof member).
+message EarningsSnapshot {
+  // Settled: vested credits in the operator's main account, redeemable.
+  int64 available_credits = 1;
+  // Pending: credits in escrow, vesting after the canary window
+  // (SPEC §4.5); slashable until then.
+  int64 escrow_credits = 2;
+  // The internal peg (1 credit = $0.000001 at launch).
+  uint64 credits_per_usd = 3;
+  // Payout credits earned (escrow + vested) since 00:00 UTC today.
+  int64 earned_today_credits = 4;
+  // Payout credits earned in the trailing seven days.
+  int64 earned_7d_credits = 5;
+  // Payout credits earned since the account was opened.
+  int64 lifetime_payout_credits = 6;
+  // When the coordinator read the ledger.
+  google.protobuf.Timestamp as_of = 7;
+  // When the oldest open escrow lot vests; unset with nothing in escrow.
+  google.protobuf.Timestamp next_vest_at = 8;
+  // The periodic cadence, so the daemon can tell a stale snapshot (older
+  // than two intervals) from a fresh one and fall back to its estimate.
+  uint32 push_interval_seconds = 9;
 }
