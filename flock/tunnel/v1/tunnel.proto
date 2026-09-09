@@ -31,6 +31,13 @@ message EnrollRequest {
   // PEM-encoded CSR for the mTLS client certificate.
   bytes csr_pem = 3;
   flock.types.v1.CapabilityProfile capability = 4;
+  // PKCE code_verifier from the `tera login` browser flow (RFC 7636). The
+  // daemon sent base64url(SHA256(verifier)) as code_challenge when it opened
+  // the claim page; the coordinator recomputes it and refuses the claim
+  // code when it does not match the challenge stored at mint time. Empty
+  // for codes minted without a challenge (`--claim-code`, dev meshes),
+  // which the coordinator accepts as before.
+  string pkce_verifier = 5;
 }
 
 message EnrollResponse {

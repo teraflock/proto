@@ -30,8 +30,15 @@ type EnrollRequest struct {
 	// Node's Ed25519 public key, raw 32 bytes. Node identity = its fingerprint.
 	Pubkey []byte `protobuf:"bytes,2,opt,name=pubkey,proto3" json:"pubkey,omitempty"`
 	// PEM-encoded CSR for the mTLS client certificate.
-	CsrPem        []byte                `protobuf:"bytes,3,opt,name=csr_pem,json=csrPem,proto3" json:"csr_pem,omitempty"`
-	Capability    *v1.CapabilityProfile `protobuf:"bytes,4,opt,name=capability,proto3" json:"capability,omitempty"`
+	CsrPem     []byte                `protobuf:"bytes,3,opt,name=csr_pem,json=csrPem,proto3" json:"csr_pem,omitempty"`
+	Capability *v1.CapabilityProfile `protobuf:"bytes,4,opt,name=capability,proto3" json:"capability,omitempty"`
+	// PKCE code_verifier from the `tera login` browser flow (RFC 7636). The
+	// daemon sent base64url(SHA256(verifier)) as code_challenge when it opened
+	// the claim page; the coordinator recomputes it and refuses the claim
+	// code when it does not match the challenge stored at mint time. Empty
+	// for codes minted without a challenge (`--claim-code`, dev meshes),
+	// which the coordinator accepts as before.
+	PkceVerifier  string `protobuf:"bytes,5,opt,name=pkce_verifier,json=pkceVerifier,proto3" json:"pkce_verifier,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -92,6 +99,13 @@ func (x *EnrollRequest) GetCapability() *v1.CapabilityProfile {
 		return x.Capability
 	}
 	return nil
+}
+
+func (x *EnrollRequest) GetPkceVerifier() string {
+	if x != nil {
+		return x.PkceVerifier
+	}
+	return ""
 }
 
 type EnrollResponse struct {
@@ -1621,7 +1635,7 @@ var File_flock_tunnel_v1_tunnel_proto protoreflect.FileDescriptor
 
 const file_flock_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\n" +
-	"\x1cflock/tunnel/v1/tunnel.proto\x12\x0fflock.tunnel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1aflock/types/v1/types.proto\"\xa2\x01\n" +
+	"\x1cflock/tunnel/v1/tunnel.proto\x12\x0fflock.tunnel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1aflock/types/v1/types.proto\"\xc7\x01\n" +
 	"\rEnrollRequest\x12\x1d\n" +
 	"\n" +
 	"claim_code\x18\x01 \x01(\tR\tclaimCode\x12\x16\n" +
@@ -1629,7 +1643,8 @@ const file_flock_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\acsr_pem\x18\x03 \x01(\fR\x06csrPem\x12A\n" +
 	"\n" +
 	"capability\x18\x04 \x01(\v2!.flock.types.v1.CapabilityProfileR\n" +
-	"capability\"\xe4\x01\n" +
+	"capability\x12#\n" +
+	"\rpkce_verifier\x18\x05 \x01(\tR\fpkceVerifier\"\xe4\x01\n" +
 	"\x0eEnrollResponse\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12&\n" +
 	"\x0fclient_cert_pem\x18\x02 \x01(\fR\rclientCertPem\x12\x1e\n" +
