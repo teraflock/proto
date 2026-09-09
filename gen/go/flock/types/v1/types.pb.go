@@ -455,30 +455,116 @@ func (x *CapabilityProfile) GetRuntimeBuildId() string {
 	return ""
 }
 
+// ArtifactPart is one pinned file of a multi-file model artifact: a shard
+// of a sharded GGUF, or a sidecar such as the vision projector. The daemon
+// verifies sha256 per part before serving (SPEC §6), exactly as it does for
+// a single-file artifact.
+type ArtifactPart struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`       // direct download URL; basename is kept on disk verbatim
+	Sha256        string                 `protobuf:"bytes,2,opt,name=sha256,proto3" json:"sha256,omitempty"` // hash of this file; daemon refuses to serve on mismatch
+	SizeBytes     uint64                 `protobuf:"varint,3,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ArtifactPart) Reset() {
+	*x = ArtifactPart{}
+	mi := &file_flock_types_v1_types_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ArtifactPart) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ArtifactPart) ProtoMessage() {}
+
+func (x *ArtifactPart) ProtoReflect() protoreflect.Message {
+	mi := &file_flock_types_v1_types_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ArtifactPart.ProtoReflect.Descriptor instead.
+func (*ArtifactPart) Descriptor() ([]byte, []int) {
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ArtifactPart) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *ArtifactPart) GetSha256() string {
+	if x != nil {
+		return x.Sha256
+	}
+	return ""
+}
+
+func (x *ArtifactPart) GetSizeBytes() uint64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
 // ModelSpec identifies one downloadable quantized model artifact.
+//
+// Exactly one of (artifact_url + sha256 as a file hash) or parts is set:
+//   - single-file: artifact_url/sha256 name the one GGUF, parts is empty;
+//   - multi-part:  parts lists every shard in llama.cpp -NNNNN-of-NNNNN
+//     order, artifact_url is empty and sha256 carries the composite id
+//     (see below). size_bytes is ALWAYS the total across parts (and never
+//     includes mmproj), so a daemon that predates parts still budgets disk
+//     correctly; it then sees an empty artifact_url and must fail the
+//     assignment cleanly ("failed") rather than serve nothing.
 type ModelSpec struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	Id          string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`         // "llama-3.1-8b-instruct-q4_k_m"
-	Family      string                 `protobuf:"bytes,2,opt,name=family,proto3" json:"family,omitempty"` // "llama-3.1"
-	ParamsB     float64                `protobuf:"fixed64,3,opt,name=params_b,json=paramsB,proto3" json:"params_b,omitempty"`
-	Quant       string                 `protobuf:"bytes,4,opt,name=quant,proto3" json:"quant,omitempty"`   // "Q4_K_M"
-	Sha256      string                 `protobuf:"bytes,5,opt,name=sha256,proto3" json:"sha256,omitempty"` // artifact hash; daemon refuses to serve on mismatch
-	MinVramMb   uint64                 `protobuf:"varint,6,opt,name=min_vram_mb,json=minVramMb,proto3" json:"min_vram_mb,omitempty"`
-	MinRamMb    uint64                 `protobuf:"varint,7,opt,name=min_ram_mb,json=minRamMb,proto3" json:"min_ram_mb,omitempty"`
-	License     string                 `protobuf:"bytes,8,opt,name=license,proto3" json:"license,omitempty"`
-	ArtifactUrl string                 `protobuf:"bytes,9,opt,name=artifact_url,json=artifactUrl,proto3" json:"artifact_url,omitempty"`
-	SizeBytes   uint64                 `protobuf:"varint,10,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Id      string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`         // "llama-3.1-8b-instruct-q4_k_m"
+	Family  string                 `protobuf:"bytes,2,opt,name=family,proto3" json:"family,omitempty"` // "llama-3.1"
+	ParamsB float64                `protobuf:"fixed64,3,opt,name=params_b,json=paramsB,proto3" json:"params_b,omitempty"`
+	Quant   string                 `protobuf:"bytes,4,opt,name=quant,proto3" json:"quant,omitempty"` // "Q4_K_M"
+	// Single-file: the artifact hash; daemon refuses to serve on mismatch.
+	// Multi-part: the composite id = hex sha256 over the concatenation of the
+	// lowercase hex part sha256s in part order (no separators), NOT a file
+	// hash. It is what DispatchRequest.quant_sha256 pins and what the daemon
+	// reports for the model; the per-file checks use parts[i].sha256.
+	Sha256      string `protobuf:"bytes,5,opt,name=sha256,proto3" json:"sha256,omitempty"`
+	MinVramMb   uint64 `protobuf:"varint,6,opt,name=min_vram_mb,json=minVramMb,proto3" json:"min_vram_mb,omitempty"`
+	MinRamMb    uint64 `protobuf:"varint,7,opt,name=min_ram_mb,json=minRamMb,proto3" json:"min_ram_mb,omitempty"`
+	License     string `protobuf:"bytes,8,opt,name=license,proto3" json:"license,omitempty"`
+	ArtifactUrl string `protobuf:"bytes,9,opt,name=artifact_url,json=artifactUrl,proto3" json:"artifact_url,omitempty"` // empty when parts is set
+	SizeBytes   uint64 `protobuf:"varint,10,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`     // total of all parts (excludes mmproj)
 	// Payout class from the model catalog: "nano", "small", "mid", "large".
 	PayoutClass   string `protobuf:"bytes,11,opt,name=payout_class,json=payoutClass,proto3" json:"payout_class,omitempty"`
 	ContextLength uint32 `protobuf:"varint,12,opt,name=context_length,json=contextLength,proto3" json:"context_length,omitempty"`
 	Embeddings    bool   `protobuf:"varint,13,opt,name=embeddings,proto3" json:"embeddings,omitempty"` // model is served for /v1/embeddings
+	// Multi-part GGUF (<name>-00001-of-0000N.gguf ...), in series order. The
+	// daemon stores the parts as sibling files with their upstream basenames
+	// so llama.cpp discovers the series from part 1. Empty for single-file.
+	Parts []*ArtifactPart `protobuf:"bytes,14,rep,name=parts,proto3" json:"parts,omitempty"`
+	// Optional vision projector sidecar (mmproj-*.gguf), passed to
+	// llama-server --mmproj. Pinned like any other part; not counted in
+	// size_bytes.
+	Mmproj        *ArtifactPart `protobuf:"bytes,15,opt,name=mmproj,proto3" json:"mmproj,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ModelSpec) Reset() {
 	*x = ModelSpec{}
-	mi := &file_flock_types_v1_types_proto_msgTypes[2]
+	mi := &file_flock_types_v1_types_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -490,7 +576,7 @@ func (x *ModelSpec) String() string {
 func (*ModelSpec) ProtoMessage() {}
 
 func (x *ModelSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_types_v1_types_proto_msgTypes[2]
+	mi := &file_flock_types_v1_types_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -503,7 +589,7 @@ func (x *ModelSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelSpec.ProtoReflect.Descriptor instead.
 func (*ModelSpec) Descriptor() ([]byte, []int) {
-	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{2}
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ModelSpec) GetId() string {
@@ -597,6 +683,20 @@ func (x *ModelSpec) GetEmbeddings() bool {
 	return false
 }
 
+func (x *ModelSpec) GetParts() []*ArtifactPart {
+	if x != nil {
+		return x.Parts
+	}
+	return nil
+}
+
+func (x *ModelSpec) GetMmproj() *ArtifactPart {
+	if x != nil {
+		return x.Mmproj
+	}
+	return nil
+}
+
 // ResourceBudget is the operator-configured ceiling the governor enforces.
 type ResourceBudget struct {
 	state                 protoimpl.MessageState `protogen:"open.v1"`
@@ -614,7 +714,7 @@ type ResourceBudget struct {
 
 func (x *ResourceBudget) Reset() {
 	*x = ResourceBudget{}
-	mi := &file_flock_types_v1_types_proto_msgTypes[3]
+	mi := &file_flock_types_v1_types_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -626,7 +726,7 @@ func (x *ResourceBudget) String() string {
 func (*ResourceBudget) ProtoMessage() {}
 
 func (x *ResourceBudget) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_types_v1_types_proto_msgTypes[3]
+	mi := &file_flock_types_v1_types_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -639,7 +739,7 @@ func (x *ResourceBudget) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResourceBudget.ProtoReflect.Descriptor instead.
 func (*ResourceBudget) Descriptor() ([]byte, []int) {
-	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{3}
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ResourceBudget) GetMaxVramPercent() uint32 {
@@ -708,7 +808,7 @@ type GenerationParams struct {
 
 func (x *GenerationParams) Reset() {
 	*x = GenerationParams{}
-	mi := &file_flock_types_v1_types_proto_msgTypes[4]
+	mi := &file_flock_types_v1_types_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -720,7 +820,7 @@ func (x *GenerationParams) String() string {
 func (*GenerationParams) ProtoMessage() {}
 
 func (x *GenerationParams) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_types_v1_types_proto_msgTypes[4]
+	mi := &file_flock_types_v1_types_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -733,7 +833,7 @@ func (x *GenerationParams) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerationParams.ProtoReflect.Descriptor instead.
 func (*GenerationParams) Descriptor() ([]byte, []int) {
-	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{4}
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GenerationParams) GetSeed() uint64 {
@@ -795,7 +895,7 @@ type ChatMessage struct {
 
 func (x *ChatMessage) Reset() {
 	*x = ChatMessage{}
-	mi := &file_flock_types_v1_types_proto_msgTypes[5]
+	mi := &file_flock_types_v1_types_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -807,7 +907,7 @@ func (x *ChatMessage) String() string {
 func (*ChatMessage) ProtoMessage() {}
 
 func (x *ChatMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_types_v1_types_proto_msgTypes[5]
+	mi := &file_flock_types_v1_types_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -820,7 +920,7 @@ func (x *ChatMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChatMessage.ProtoReflect.Descriptor instead.
 func (*ChatMessage) Descriptor() ([]byte, []int) {
-	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{5}
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ChatMessage) GetRole() string {
@@ -847,7 +947,7 @@ type Usage struct {
 
 func (x *Usage) Reset() {
 	*x = Usage{}
-	mi := &file_flock_types_v1_types_proto_msgTypes[6]
+	mi := &file_flock_types_v1_types_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -859,7 +959,7 @@ func (x *Usage) String() string {
 func (*Usage) ProtoMessage() {}
 
 func (x *Usage) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_types_v1_types_proto_msgTypes[6]
+	mi := &file_flock_types_v1_types_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -872,7 +972,7 @@ func (x *Usage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Usage.ProtoReflect.Descriptor instead.
 func (*Usage) Descriptor() ([]byte, []int) {
-	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{6}
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *Usage) GetPromptTokens() uint32 {
@@ -907,7 +1007,7 @@ type ModelState struct {
 
 func (x *ModelState) Reset() {
 	*x = ModelState{}
-	mi := &file_flock_types_v1_types_proto_msgTypes[7]
+	mi := &file_flock_types_v1_types_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -919,7 +1019,7 @@ func (x *ModelState) String() string {
 func (*ModelState) ProtoMessage() {}
 
 func (x *ModelState) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_types_v1_types_proto_msgTypes[7]
+	mi := &file_flock_types_v1_types_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -932,7 +1032,7 @@ func (x *ModelState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelState.ProtoReflect.Descriptor instead.
 func (*ModelState) Descriptor() ([]byte, []int) {
-	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{7}
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ModelState) GetModelId() string {
@@ -988,7 +1088,12 @@ const file_flock_types_v1_types_proto_rawDesc = "" +
 	"\x11bandwidth_up_mbps\x18\t \x01(\x01R\x0fbandwidthUpMbps\x12%\n" +
 	"\x0edaemon_version\x18\n" +
 	" \x01(\tR\rdaemonVersion\x12(\n" +
-	"\x10runtime_build_id\x18\v \x01(\tR\x0eruntimeBuildId\"\x80\x03\n" +
+	"\x10runtime_build_id\x18\v \x01(\tR\x0eruntimeBuildId\"W\n" +
+	"\fArtifactPart\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\x12\x16\n" +
+	"\x06sha256\x18\x02 \x01(\tR\x06sha256\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x03 \x01(\x04R\tsizeBytes\"\xea\x03\n" +
 	"\tModelSpec\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06family\x18\x02 \x01(\tR\x06family\x12\x19\n" +
@@ -1007,7 +1112,9 @@ const file_flock_types_v1_types_proto_rawDesc = "" +
 	"\x0econtext_length\x18\f \x01(\rR\rcontextLength\x12\x1e\n" +
 	"\n" +
 	"embeddings\x18\r \x01(\bR\n" +
-	"embeddings\"\xa7\x02\n" +
+	"embeddings\x122\n" +
+	"\x05parts\x18\x0e \x03(\v2\x1c.flock.types.v1.ArtifactPartR\x05parts\x124\n" +
+	"\x06mmproj\x18\x0f \x01(\v2\x1c.flock.types.v1.ArtifactPartR\x06mmproj\"\xa7\x02\n" +
 	"\x0eResourceBudget\x12(\n" +
 	"\x10max_vram_percent\x18\x01 \x01(\rR\x0emaxVramPercent\x12\x1c\n" +
 	"\n" +
@@ -1074,7 +1181,7 @@ func file_flock_types_v1_types_proto_rawDescGZIP() []byte {
 }
 
 var file_flock_types_v1_types_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_flock_types_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_flock_types_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_flock_types_v1_types_proto_goTypes = []any{
 	(RequestKind)(0),              // 0: flock.types.v1.RequestKind
 	(Tier)(0),                     // 1: flock.types.v1.Tier
@@ -1082,22 +1189,25 @@ var file_flock_types_v1_types_proto_goTypes = []any{
 	(NodeState)(0),                // 3: flock.types.v1.NodeState
 	(*GpuInfo)(nil),               // 4: flock.types.v1.GpuInfo
 	(*CapabilityProfile)(nil),     // 5: flock.types.v1.CapabilityProfile
-	(*ModelSpec)(nil),             // 6: flock.types.v1.ModelSpec
-	(*ResourceBudget)(nil),        // 7: flock.types.v1.ResourceBudget
-	(*GenerationParams)(nil),      // 8: flock.types.v1.GenerationParams
-	(*ChatMessage)(nil),           // 9: flock.types.v1.ChatMessage
-	(*Usage)(nil),                 // 10: flock.types.v1.Usage
-	(*ModelState)(nil),            // 11: flock.types.v1.ModelState
-	(*timestamppb.Timestamp)(nil), // 12: google.protobuf.Timestamp
+	(*ArtifactPart)(nil),          // 6: flock.types.v1.ArtifactPart
+	(*ModelSpec)(nil),             // 7: flock.types.v1.ModelSpec
+	(*ResourceBudget)(nil),        // 8: flock.types.v1.ResourceBudget
+	(*GenerationParams)(nil),      // 9: flock.types.v1.GenerationParams
+	(*ChatMessage)(nil),           // 10: flock.types.v1.ChatMessage
+	(*Usage)(nil),                 // 11: flock.types.v1.Usage
+	(*ModelState)(nil),            // 12: flock.types.v1.ModelState
+	(*timestamppb.Timestamp)(nil), // 13: google.protobuf.Timestamp
 }
 var file_flock_types_v1_types_proto_depIdxs = []int32{
 	4,  // 0: flock.types.v1.CapabilityProfile.gpus:type_name -> flock.types.v1.GpuInfo
-	12, // 1: flock.types.v1.ModelState.loaded_at:type_name -> google.protobuf.Timestamp
-	2,  // [2:2] is the sub-list for method output_type
-	2,  // [2:2] is the sub-list for method input_type
-	2,  // [2:2] is the sub-list for extension type_name
-	2,  // [2:2] is the sub-list for extension extendee
-	0,  // [0:2] is the sub-list for field type_name
+	6,  // 1: flock.types.v1.ModelSpec.parts:type_name -> flock.types.v1.ArtifactPart
+	6,  // 2: flock.types.v1.ModelSpec.mmproj:type_name -> flock.types.v1.ArtifactPart
+	13, // 3: flock.types.v1.ModelState.loaded_at:type_name -> google.protobuf.Timestamp
+	4,  // [4:4] is the sub-list for method output_type
+	4,  // [4:4] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_flock_types_v1_types_proto_init() }
@@ -1111,7 +1221,7 @@ func file_flock_types_v1_types_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_flock_types_v1_types_proto_rawDesc), len(file_flock_types_v1_types_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

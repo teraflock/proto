@@ -37,22 +37,54 @@ message CapabilityProfile {
   string runtime_build_id = 11;
 }
 
+// ArtifactPart is one pinned file of a multi-file model artifact: a shard
+// of a sharded GGUF, or a sidecar such as the vision projector. The daemon
+// verifies sha256 per part before serving (SPEC §6), exactly as it does for
+// a single-file artifact.
+message ArtifactPart {
+  string url = 1;    // direct download URL; basename is kept on disk verbatim
+  string sha256 = 2; // hash of this file; daemon refuses to serve on mismatch
+  uint64 size_bytes = 3;
+}
+
 // ModelSpec identifies one downloadable quantized model artifact.
+//
+// Exactly one of (artifact_url + sha256 as a file hash) or parts is set:
+//   - single-file: artifact_url/sha256 name the one GGUF, parts is empty;
+//   - multi-part:  parts lists every shard in llama.cpp -NNNNN-of-NNNNN
+//     order, artifact_url is empty and sha256 carries the composite id
+//     (see below). size_bytes is ALWAYS the total across parts (and never
+//     includes mmproj), so a daemon that predates parts still budgets disk
+//     correctly; it then sees an empty artifact_url and must fail the
+//     assignment cleanly ("failed") rather than serve nothing.
 message ModelSpec {
   string id = 1;      // "llama-3.1-8b-instruct-q4_k_m"
   string family = 2;  // "llama-3.1"
   double params_b = 3;
   string quant = 4;   // "Q4_K_M"
-  string sha256 = 5;  // artifact hash; daemon refuses to serve on mismatch
+  // Single-file: the artifact hash; daemon refuses to serve on mismatch.
+  // Multi-part: the composite id = hex sha256 over the concatenation of the
+  // lowercase hex part sha256s in part order (no separators), NOT a file
+  // hash. It is what DispatchRequest.quant_sha256 pins and what the daemon
+  // reports for the model; the per-file checks use parts[i].sha256.
+  string sha256 = 5;
   uint64 min_vram_mb = 6;
   uint64 min_ram_mb = 7;
   string license = 8;
-  string artifact_url = 9;
-  uint64 size_bytes = 10;
+  string artifact_url = 9; // empty when parts is set
+  uint64 size_bytes = 10;  // total of all parts (excludes mmproj)
   // Payout class from the model catalog: "nano", "small", "mid", "large".
   string payout_class = 11;
   uint32 context_length = 12;
   bool embeddings = 13; // model is served for /v1/embeddings
+  // Multi-part GGUF (<name>-00001-of-0000N.gguf ...), in series order. The
+  // daemon stores the parts as sibling files with their upstream basenames
+  // so llama.cpp discovers the series from part 1. Empty for single-file.
+  repeated ArtifactPart parts = 14;
+  // Optional vision projector sidecar (mmproj-*.gguf), passed to
+  // llama-server --mmproj. Pinned like any other part; not counted in
+  // size_bytes.
+  ArtifactPart mmproj = 15;
 }
 
 // ResourceBudget is the operator-configured ceiling the governor enforces.
