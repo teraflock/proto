@@ -45,8 +45,11 @@ type ControlServiceClient interface {
 	FleetStatus(ctx context.Context, in *FleetStatusRequest, opts ...grpc.CallOption) (*FleetStatusResponse, error)
 	// ReinstateNode lifts a ban or slash lockout from ops tooling: the node's
 	// durable status returns to probation with a fresh initial reputation, and
-	// the live registry is updated so its next Hello is accepted. The daemon
-	// does not retry after a ban-drain, so the operator still restarts flockd.
+	// the live registry is updated so its next Hello is accepted. No daemon
+	// restart: a ban drains and then closes the tunnel, the daemon keeps
+	// redialing with backoff (each Hello refused while banned), and the first
+	// dial after this call is admitted. Any session the node still holds is
+	// closed so it returns through Hello with fresh state.
 	ReinstateNode(ctx context.Context, in *ReinstateNodeRequest, opts ...grpc.CallOption) (*ReinstateNodeResponse, error)
 }
 
@@ -136,8 +139,11 @@ type ControlServiceServer interface {
 	FleetStatus(context.Context, *FleetStatusRequest) (*FleetStatusResponse, error)
 	// ReinstateNode lifts a ban or slash lockout from ops tooling: the node's
 	// durable status returns to probation with a fresh initial reputation, and
-	// the live registry is updated so its next Hello is accepted. The daemon
-	// does not retry after a ban-drain, so the operator still restarts flockd.
+	// the live registry is updated so its next Hello is accepted. No daemon
+	// restart: a ban drains and then closes the tunnel, the daemon keeps
+	// redialing with backoff (each Hello refused while banned), and the first
+	// dial after this call is admitted. Any session the node still holds is
+	// closed so it returns through Hello with fresh state.
 	ReinstateNode(context.Context, *ReinstateNodeRequest) (*ReinstateNodeResponse, error)
 	mustEmbedUnimplementedControlServiceServer()
 }
