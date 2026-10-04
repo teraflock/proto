@@ -18,6 +18,9 @@ service ControlService {
   // RouteEmbedding is the non-streaming embedding path.
   rpc RouteEmbedding(RouteEmbeddingRequest) returns (RouteEmbeddingResponse);
 
+  // RouteDecision is the non-streaming typed-decision path (/v1/systemone).
+  rpc RouteDecision(RouteDecisionRequest) returns (RouteDecisionResponse);
+
   // ListNodes returns registry + live state for ops tooling and the console.
   rpc ListNodes(ListNodesRequest) returns (ListNodesResponse);
 
@@ -76,6 +79,24 @@ message RouteEmbeddingResponse {
   uint32 dims = 2;
   flock.types.v1.Usage usage = 3;
   string served_by_node_id = 4;
+}
+
+message RouteDecisionRequest {
+  string request_id = 1;
+  string model_id = 2;
+  flock.types.v1.Tier tier = 3;
+  flock.types.v1.DecisionInput input = 4;
+  // "interactive" or "batch", as RouteRequest.latency_class.
+  string latency_class = 5;
+  uint32 max_latency_ms = 6;
+}
+
+message RouteDecisionResponse {
+  repeated flock.types.v1.DecisionAnswer answers = 1; // in question order
+  flock.types.v1.Usage usage = 2;
+  string served_by_node_id = 3;
+  // Wall time the node took, for the latency the console shows.
+  uint32 latency_ms = 4;
 }
 
 message ListNodesRequest {

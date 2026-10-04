@@ -85,6 +85,12 @@ message ModelSpec {
   // llama-server --mmproj. Pinned like any other part; not counted in
   // size_bytes.
   ArtifactPart mmproj = 15;
+  // Model is a typed decision model served for /v1/systemone (kind=DECISION):
+  // it scores the options of typed questions in a forward pass and
+  // generates no tokens. Mutually exclusive with embeddings. A daemon that
+  // predates this field cannot serve such a model; placement gates on
+  // CapabilityProfile.daemon_version (design note 2026-10-03).
+  bool decision = 16;
 }
 
 // ResourceBudget is the operator-configured ceiling the governor enforces.
@@ -121,6 +127,71 @@ enum RequestKind {
   REQUEST_KIND_CHAT = 1;
   REQUEST_KIND_COMPLETION = 2;
   REQUEST_KIND_EMBEDDING = 3;
+  // Typed decision (TypeSafe "System One" API, /v1/systemone): input is a
+  // DecisionInput, the result a list of DecisionAnswer. Never streamed.
+  REQUEST_KIND_DECISION = 4;
+}
+
+// ---- typed decisions (kind=DECISION) ----
+//
+// The wire mirrors the public /v1/systemone request after the gateway has
+// validated it. JSON objects become ordered lists because order is part of
+// the contract: answers come back in question order, and a model reads the
+// options in the order the customer wrote them. Free-form JSON leaves
+// (state, instructions, option descriptions) travel as compact JSON text,
+// exactly what the runtime is given.
+
+enum DecisionQuestionType {
+  DECISION_QUESTION_TYPE_UNSPECIFIED = 0;
+  // Pick one of the labelled options.
+  DECISION_QUESTION_TYPE_CHOICE = 1;
+  // Place the state on an ordered scale of 2-10 levels, lowest first.
+  DECISION_QUESTION_TYPE_SCORE = 2;
+  // Probability that a yes/no statement is true ("noul").
+  DECISION_QUESTION_TYPE_NOUL = 3;
+}
+
+message DecisionOption {
+  // choice: the customer's option key. score: the level index as a decimal
+  // string ("0", "1", ...), lowest level first. noul: "true" / "false",
+  // present only when the customer described them.
+  string key = 1;
+  // Compact JSON of the description (string, object or array). Empty means
+  // JSON null: the option has no description.
+  string description_json = 2;
+}
+
+message DecisionQuestion {
+  string id = 1; // the customer's key in `questions`
+  DecisionQuestionType type = 2;
+  string instructions_json = 3; // compact JSON: string, object or array
+  // choice: 2..255 options. score: 2..10 levels. noul: empty, or exactly
+  // the "true" and "false" descriptions.
+  repeated DecisionOption options = 4;
+}
+
+message DecisionInput {
+  // Compact JSON of the state: string, object or array.
+  string state_json = 1;
+  repeated DecisionQuestion questions = 2; // in request order, ids unique
+}
+
+message DecisionProbability {
+  string key = 1; // option key, or level index for score
+  double probability = 2;
+}
+
+message DecisionAnswer {
+  string question_id = 1;
+  DecisionQuestionType type = 2;
+  string choice = 3; // CHOICE: the most probable option key
+  double score = 4;  // SCORE: expected level index, may fall between levels
+  double noul = 5;   // NOUL: probability the statement is true
+  // CHOICE and SCORE: one entry per option in question order, summing to 1.
+  // Empty for NOUL.
+  repeated DecisionProbability probabilities = 6;
+  // CHOICE and SCORE: 0..1, 0 = all options equally likely. Unset for NOUL.
+  double confidence = 7;
 }
 
 // Privacy tier per SPEC §2.1.

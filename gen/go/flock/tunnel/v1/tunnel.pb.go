@@ -198,6 +198,7 @@ type NodeMessage struct {
 	//	*NodeMessage_ModelState
 	//	*NodeMessage_Goodbye
 	//	*NodeMessage_EmbeddingResult
+	//	*NodeMessage_DecisionResult
 	Msg           isNodeMessage_Msg `protobuf_oneof:"msg"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -312,6 +313,15 @@ func (x *NodeMessage) GetEmbeddingResult() *EmbeddingResult {
 	return nil
 }
 
+func (x *NodeMessage) GetDecisionResult() *DecisionResult {
+	if x != nil {
+		if x, ok := x.Msg.(*NodeMessage_DecisionResult); ok {
+			return x.DecisionResult
+		}
+	}
+	return nil
+}
+
 type isNodeMessage_Msg interface {
 	isNodeMessage_Msg()
 }
@@ -348,6 +358,10 @@ type NodeMessage_EmbeddingResult struct {
 	EmbeddingResult *EmbeddingResult `protobuf:"bytes,8,opt,name=embedding_result,json=embeddingResult,proto3,oneof"`
 }
 
+type NodeMessage_DecisionResult struct {
+	DecisionResult *DecisionResult `protobuf:"bytes,9,opt,name=decision_result,json=decisionResult,proto3,oneof"`
+}
+
 func (*NodeMessage_Hello) isNodeMessage_Msg() {}
 
 func (*NodeMessage_Heartbeat) isNodeMessage_Msg() {}
@@ -363,6 +377,8 @@ func (*NodeMessage_ModelState) isNodeMessage_Msg() {}
 func (*NodeMessage_Goodbye) isNodeMessage_Msg() {}
 
 func (*NodeMessage_EmbeddingResult) isNodeMessage_Msg() {}
+
+func (*NodeMessage_DecisionResult) isNodeMessage_Msg() {}
 
 type Hello struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -794,6 +810,88 @@ func (x *EmbeddingResult) GetError() string {
 	return ""
 }
 
+// DecisionResult is the whole answer to a kind=DECISION dispatch: one
+// message, no stream. usage.prompt_tokens is the runtime's input-token
+// count across all questions; completion_tokens is always 0.
+type DecisionResult struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	RequestId string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	Answers   []*v1.DecisionAnswer   `protobuf:"bytes,2,rep,name=answers,proto3" json:"answers,omitempty"` // in question order
+	Usage     *v1.Usage              `protobuf:"bytes,3,opt,name=usage,proto3" json:"usage,omitempty"`
+	Error     string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	// True when the runtime rejected the input itself (too many options for
+	// this model, prompt over the model's context): retrying on another node
+	// cannot help, so the coordinator stops and the gateway answers 422.
+	InvalidInput  bool `protobuf:"varint,5,opt,name=invalid_input,json=invalidInput,proto3" json:"invalid_input,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DecisionResult) Reset() {
+	*x = DecisionResult{}
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DecisionResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DecisionResult) ProtoMessage() {}
+
+func (x *DecisionResult) ProtoReflect() protoreflect.Message {
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DecisionResult.ProtoReflect.Descriptor instead.
+func (*DecisionResult) Descriptor() ([]byte, []int) {
+	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *DecisionResult) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *DecisionResult) GetAnswers() []*v1.DecisionAnswer {
+	if x != nil {
+		return x.Answers
+	}
+	return nil
+}
+
+func (x *DecisionResult) GetUsage() *v1.Usage {
+	if x != nil {
+		return x.Usage
+	}
+	return nil
+}
+
+func (x *DecisionResult) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *DecisionResult) GetInvalidInput() bool {
+	if x != nil {
+		return x.InvalidInput
+	}
+	return false
+}
+
 type ChallengeResponse struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	ChallengeId string                 `protobuf:"bytes,1,opt,name=challenge_id,json=challengeId,proto3" json:"challenge_id,omitempty"`
@@ -803,13 +901,17 @@ type ChallengeResponse struct {
 	OutputSha256     string  `protobuf:"bytes,3,opt,name=output_sha256,json=outputSha256,proto3" json:"output_sha256,omitempty"`
 	CompletionTokens uint32  `protobuf:"varint,4,opt,name=completion_tokens,json=completionTokens,proto3" json:"completion_tokens,omitempty"`
 	TokensPerSec     float64 `protobuf:"fixed64,5,opt,name=tokens_per_sec,json=tokensPerSec,proto3" json:"tokens_per_sec,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Decision challenge (Challenge.decision set): the answers, compared
+	// against the private expected probabilities within a tolerance. output
+	// and output_sha256 are empty.
+	Answers       []*v1.DecisionAnswer `protobuf:"bytes,6,rep,name=answers,proto3" json:"answers,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ChallengeResponse) Reset() {
 	*x = ChallengeResponse{}
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[8]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -821,7 +923,7 @@ func (x *ChallengeResponse) String() string {
 func (*ChallengeResponse) ProtoMessage() {}
 
 func (x *ChallengeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[8]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -834,7 +936,7 @@ func (x *ChallengeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChallengeResponse.ProtoReflect.Descriptor instead.
 func (*ChallengeResponse) Descriptor() ([]byte, []int) {
-	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{8}
+	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ChallengeResponse) GetChallengeId() string {
@@ -872,6 +974,13 @@ func (x *ChallengeResponse) GetTokensPerSec() float64 {
 	return 0
 }
 
+func (x *ChallengeResponse) GetAnswers() []*v1.DecisionAnswer {
+	if x != nil {
+		return x.Answers
+	}
+	return nil
+}
+
 type ModelStateUpdate struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Model         *v1.ModelState         `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
@@ -881,7 +990,7 @@ type ModelStateUpdate struct {
 
 func (x *ModelStateUpdate) Reset() {
 	*x = ModelStateUpdate{}
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[9]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -893,7 +1002,7 @@ func (x *ModelStateUpdate) String() string {
 func (*ModelStateUpdate) ProtoMessage() {}
 
 func (x *ModelStateUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[9]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -906,7 +1015,7 @@ func (x *ModelStateUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelStateUpdate.ProtoReflect.Descriptor instead.
 func (*ModelStateUpdate) Descriptor() ([]byte, []int) {
-	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{9}
+	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ModelStateUpdate) GetModel() *v1.ModelState {
@@ -928,7 +1037,7 @@ type Goodbye struct {
 
 func (x *Goodbye) Reset() {
 	*x = Goodbye{}
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[10]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -940,7 +1049,7 @@ func (x *Goodbye) String() string {
 func (*Goodbye) ProtoMessage() {}
 
 func (x *Goodbye) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[10]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -953,7 +1062,7 @@ func (x *Goodbye) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Goodbye.ProtoReflect.Descriptor instead.
 func (*Goodbye) Descriptor() ([]byte, []int) {
-	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{10}
+	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Goodbye) GetReason() string {
@@ -989,7 +1098,7 @@ type CoordinatorMessage struct {
 
 func (x *CoordinatorMessage) Reset() {
 	*x = CoordinatorMessage{}
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[11]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1001,7 +1110,7 @@ func (x *CoordinatorMessage) String() string {
 func (*CoordinatorMessage) ProtoMessage() {}
 
 func (x *CoordinatorMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[11]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1014,7 +1123,7 @@ func (x *CoordinatorMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CoordinatorMessage.ProtoReflect.Descriptor instead.
 func (*CoordinatorMessage) Descriptor() ([]byte, []int) {
-	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{11}
+	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CoordinatorMessage) GetMsg() isCoordinatorMessage_Msg {
@@ -1159,7 +1268,7 @@ type HelloAck struct {
 
 func (x *HelloAck) Reset() {
 	*x = HelloAck{}
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[12]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1171,7 +1280,7 @@ func (x *HelloAck) String() string {
 func (*HelloAck) ProtoMessage() {}
 
 func (x *HelloAck) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[12]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1184,7 +1293,7 @@ func (x *HelloAck) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HelloAck.ProtoReflect.Descriptor instead.
 func (*HelloAck) Descriptor() ([]byte, []int) {
-	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{12}
+	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *HelloAck) GetSessionId() string {
@@ -1224,13 +1333,14 @@ type DispatchRequest struct {
 	EmbeddingInput []string               `protobuf:"bytes,8,rep,name=embedding_input,json=embeddingInput,proto3" json:"embedding_input,omitempty"` // kind=EMBEDDING
 	Deadline       *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=deadline,proto3" json:"deadline,omitempty"`
 	Signature      []byte                 `protobuf:"bytes,10,opt,name=signature,proto3" json:"signature,omitempty"`
+	Decision       *v1.DecisionInput      `protobuf:"bytes,11,opt,name=decision,proto3" json:"decision,omitempty"` // kind=DECISION
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
 
 func (x *DispatchRequest) Reset() {
 	*x = DispatchRequest{}
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[13]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1242,7 +1352,7 @@ func (x *DispatchRequest) String() string {
 func (*DispatchRequest) ProtoMessage() {}
 
 func (x *DispatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[13]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1255,7 +1365,7 @@ func (x *DispatchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DispatchRequest.ProtoReflect.Descriptor instead.
 func (*DispatchRequest) Descriptor() ([]byte, []int) {
-	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{13}
+	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DispatchRequest) GetRequestId() string {
@@ -1328,6 +1438,13 @@ func (x *DispatchRequest) GetSignature() []byte {
 	return nil
 }
 
+func (x *DispatchRequest) GetDecision() *v1.DecisionInput {
+	if x != nil {
+		return x.Decision
+	}
+	return nil
+}
+
 type CancelRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RequestId     string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
@@ -1338,7 +1455,7 @@ type CancelRequest struct {
 
 func (x *CancelRequest) Reset() {
 	*x = CancelRequest{}
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[14]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1350,7 +1467,7 @@ func (x *CancelRequest) String() string {
 func (*CancelRequest) ProtoMessage() {}
 
 func (x *CancelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[14]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1363,7 +1480,7 @@ func (x *CancelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelRequest.ProtoReflect.Descriptor instead.
 func (*CancelRequest) Descriptor() ([]byte, []int) {
-	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{14}
+	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *CancelRequest) GetRequestId() string {
@@ -1383,18 +1500,21 @@ func (x *CancelRequest) GetReason() string {
 // Challenge is a fingerprint probe (SPEC §2.2): fixed seed, greedy decode,
 // known expected output per (model_sha, quant, runtime_build_id).
 type Challenge struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ChallengeId   string                 `protobuf:"bytes,1,opt,name=challenge_id,json=challengeId,proto3" json:"challenge_id,omitempty"`
-	ModelId       string                 `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	Prompt        string                 `protobuf:"bytes,3,opt,name=prompt,proto3" json:"prompt,omitempty"`
-	Params        *v1.GenerationParams   `protobuf:"bytes,4,opt,name=params,proto3" json:"params,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	ChallengeId string                 `protobuf:"bytes,1,opt,name=challenge_id,json=challengeId,proto3" json:"challenge_id,omitempty"`
+	ModelId     string                 `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	Prompt      string                 `protobuf:"bytes,3,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	Params      *v1.GenerationParams   `protobuf:"bytes,4,opt,name=params,proto3" json:"params,omitempty"`
+	// Set for a decision model instead of prompt/params: the probe is a fixed
+	// state + questions and the response carries answers, not text.
+	Decision      *v1.DecisionInput `protobuf:"bytes,5,opt,name=decision,proto3" json:"decision,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Challenge) Reset() {
 	*x = Challenge{}
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[15]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1406,7 +1526,7 @@ func (x *Challenge) String() string {
 func (*Challenge) ProtoMessage() {}
 
 func (x *Challenge) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[15]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1419,7 +1539,7 @@ func (x *Challenge) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Challenge.ProtoReflect.Descriptor instead.
 func (*Challenge) Descriptor() ([]byte, []int) {
-	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{15}
+	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *Challenge) GetChallengeId() string {
@@ -1450,6 +1570,13 @@ func (x *Challenge) GetParams() *v1.GenerationParams {
 	return nil
 }
 
+func (x *Challenge) GetDecision() *v1.DecisionInput {
+	if x != nil {
+		return x.Decision
+	}
+	return nil
+}
+
 type ModelAssignment struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Download if needed, load, report ready.
@@ -1465,7 +1592,7 @@ type ModelAssignment struct {
 
 func (x *ModelAssignment) Reset() {
 	*x = ModelAssignment{}
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[16]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1477,7 +1604,7 @@ func (x *ModelAssignment) String() string {
 func (*ModelAssignment) ProtoMessage() {}
 
 func (x *ModelAssignment) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[16]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1490,7 +1617,7 @@ func (x *ModelAssignment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelAssignment.ProtoReflect.Descriptor instead.
 func (*ModelAssignment) Descriptor() ([]byte, []int) {
-	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{16}
+	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ModelAssignment) GetAssign() []*v1.ModelSpec {
@@ -1530,7 +1657,7 @@ type ConfigUpdate struct {
 
 func (x *ConfigUpdate) Reset() {
 	*x = ConfigUpdate{}
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[17]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1542,7 +1669,7 @@ func (x *ConfigUpdate) String() string {
 func (*ConfigUpdate) ProtoMessage() {}
 
 func (x *ConfigUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[17]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1555,7 +1682,7 @@ func (x *ConfigUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigUpdate.ProtoReflect.Descriptor instead.
 func (*ConfigUpdate) Descriptor() ([]byte, []int) {
-	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{17}
+	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ConfigUpdate) GetHeartbeatIntervalSeconds() uint32 {
@@ -1605,7 +1732,7 @@ type Drain struct {
 
 func (x *Drain) Reset() {
 	*x = Drain{}
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[18]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1617,7 +1744,7 @@ func (x *Drain) String() string {
 func (*Drain) ProtoMessage() {}
 
 func (x *Drain) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[18]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1630,7 +1757,7 @@ func (x *Drain) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Drain.ProtoReflect.Descriptor instead.
 func (*Drain) Descriptor() ([]byte, []int) {
-	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{18}
+	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *Drain) GetReason() string {
@@ -1685,7 +1812,7 @@ type EarningsSnapshot struct {
 
 func (x *EarningsSnapshot) Reset() {
 	*x = EarningsSnapshot{}
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[19]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1697,7 +1824,7 @@ func (x *EarningsSnapshot) String() string {
 func (*EarningsSnapshot) ProtoMessage() {}
 
 func (x *EarningsSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[19]
+	mi := &file_flock_tunnel_v1_tunnel_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1710,7 +1837,7 @@ func (x *EarningsSnapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EarningsSnapshot.ProtoReflect.Descriptor instead.
 func (*EarningsSnapshot) Descriptor() ([]byte, []int) {
-	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{19}
+	return file_flock_tunnel_v1_tunnel_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *EarningsSnapshot) GetAvailableCredits() int64 {
@@ -1795,7 +1922,7 @@ const file_flock_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\x0fclient_cert_pem\x18\x02 \x01(\fR\rclientCertPem\x12\x1e\n" +
 	"\vca_cert_pem\x18\x03 \x01(\fR\tcaCertPem\x12-\n" +
 	"\x12coordinator_pubkey\x18\x04 \x01(\fR\x11coordinatorPubkey\x12B\n" +
-	"\x0fcert_expires_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\rcertExpiresAt\"\xa3\x04\n" +
+	"\x0fcert_expires_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\rcertExpiresAt\"\xef\x04\n" +
 	"\vNodeMessage\x12.\n" +
 	"\x05hello\x18\x01 \x01(\v2\x16.flock.tunnel.v1.HelloH\x00R\x05hello\x12:\n" +
 	"\theartbeat\x18\x02 \x01(\v2\x1a.flock.tunnel.v1.HeartbeatH\x00R\theartbeat\x12>\n" +
@@ -1806,7 +1933,8 @@ const file_flock_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\vmodel_state\x18\x06 \x01(\v2!.flock.tunnel.v1.ModelStateUpdateH\x00R\n" +
 	"modelState\x124\n" +
 	"\agoodbye\x18\a \x01(\v2\x18.flock.tunnel.v1.GoodbyeH\x00R\agoodbye\x12M\n" +
-	"\x10embedding_result\x18\b \x01(\v2 .flock.tunnel.v1.EmbeddingResultH\x00R\x0fembeddingResultB\x05\n" +
+	"\x10embedding_result\x18\b \x01(\v2 .flock.tunnel.v1.EmbeddingResultH\x00R\x0fembeddingResult\x12J\n" +
+	"\x0fdecision_result\x18\t \x01(\v2\x1f.flock.tunnel.v1.DecisionResultH\x00R\x0edecisionResultB\x05\n" +
 	"\x03msg\"\xf6\x01\n" +
 	"\x05Hello\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12%\n" +
@@ -1854,13 +1982,21 @@ const file_flock_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"embeddings\x12\x12\n" +
 	"\x04dims\x18\x03 \x01(\rR\x04dims\x12+\n" +
 	"\x05usage\x18\x04 \x01(\v2\x15.flock.types.v1.UsageR\x05usage\x12\x14\n" +
-	"\x05error\x18\x05 \x01(\tR\x05error\"\xc6\x01\n" +
+	"\x05error\x18\x05 \x01(\tR\x05error\"\xd1\x01\n" +
+	"\x0eDecisionResult\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x128\n" +
+	"\aanswers\x18\x02 \x03(\v2\x1e.flock.types.v1.DecisionAnswerR\aanswers\x12+\n" +
+	"\x05usage\x18\x03 \x01(\v2\x15.flock.types.v1.UsageR\x05usage\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\x12#\n" +
+	"\rinvalid_input\x18\x05 \x01(\bR\finvalidInput\"\x80\x02\n" +
 	"\x11ChallengeResponse\x12!\n" +
 	"\fchallenge_id\x18\x01 \x01(\tR\vchallengeId\x12\x16\n" +
 	"\x06output\x18\x02 \x01(\tR\x06output\x12#\n" +
 	"\routput_sha256\x18\x03 \x01(\tR\foutputSha256\x12+\n" +
 	"\x11completion_tokens\x18\x04 \x01(\rR\x10completionTokens\x12$\n" +
-	"\x0etokens_per_sec\x18\x05 \x01(\x01R\ftokensPerSec\"D\n" +
+	"\x0etokens_per_sec\x18\x05 \x01(\x01R\ftokensPerSec\x128\n" +
+	"\aanswers\x18\x06 \x03(\v2\x1e.flock.types.v1.DecisionAnswerR\aanswers\"D\n" +
 	"\x10ModelStateUpdate\x120\n" +
 	"\x05model\x18\x01 \x01(\v2\x1a.flock.types.v1.ModelStateR\x05model\"S\n" +
 	"\aGoodbye\x12\x16\n" +
@@ -1880,7 +2016,7 @@ const file_flock_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12<\n" +
 	"\x1aheartbeat_interval_seconds\x18\x02 \x01(\rR\x18heartbeatIntervalSeconds\x122\n" +
-	"\x15min_supported_version\x18\x03 \x01(\tR\x13minSupportedVersion\"\xa9\x03\n" +
+	"\x15min_supported_version\x18\x03 \x01(\tR\x13minSupportedVersion\"\xe4\x03\n" +
 	"\x0fDispatchRequest\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\x12\x19\n" +
@@ -1893,16 +2029,18 @@ const file_flock_tunnel_v1_tunnel_proto_rawDesc = "" +
 	"\x0fembedding_input\x18\b \x03(\tR\x0eembeddingInput\x126\n" +
 	"\bdeadline\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\bdeadline\x12\x1c\n" +
 	"\tsignature\x18\n" +
-	" \x01(\fR\tsignature\"F\n" +
+	" \x01(\fR\tsignature\x129\n" +
+	"\bdecision\x18\v \x01(\v2\x1d.flock.types.v1.DecisionInputR\bdecision\"F\n" +
 	"\rCancelRequest\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason\"\x9b\x01\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"\xd6\x01\n" +
 	"\tChallenge\x12!\n" +
 	"\fchallenge_id\x18\x01 \x01(\tR\vchallengeId\x12\x19\n" +
 	"\bmodel_id\x18\x02 \x01(\tR\amodelId\x12\x16\n" +
 	"\x06prompt\x18\x03 \x01(\tR\x06prompt\x128\n" +
-	"\x06params\x18\x04 \x01(\v2 .flock.types.v1.GenerationParamsR\x06params\"\x9d\x01\n" +
+	"\x06params\x18\x04 \x01(\v2 .flock.types.v1.GenerationParamsR\x06params\x129\n" +
+	"\bdecision\x18\x05 \x01(\v2\x1d.flock.types.v1.DecisionInputR\bdecision\"\x9d\x01\n" +
 	"\x0fModelAssignment\x121\n" +
 	"\x06assign\x18\x01 \x03(\v2\x19.flock.types.v1.ModelSpecR\x06assign\x12&\n" +
 	"\x0fevict_model_ids\x18\x02 \x03(\tR\revictModelIds\x12/\n" +
@@ -1944,7 +2082,7 @@ func file_flock_tunnel_v1_tunnel_proto_rawDescGZIP() []byte {
 	return file_flock_tunnel_v1_tunnel_proto_rawDescData
 }
 
-var file_flock_tunnel_v1_tunnel_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_flock_tunnel_v1_tunnel_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_flock_tunnel_v1_tunnel_proto_goTypes = []any{
 	(*EnrollRequest)(nil),         // 0: flock.tunnel.v1.EnrollRequest
 	(*EnrollResponse)(nil),        // 1: flock.tunnel.v1.EnrollResponse
@@ -1954,78 +2092,87 @@ var file_flock_tunnel_v1_tunnel_proto_goTypes = []any{
 	(*DispatchAck)(nil),           // 5: flock.tunnel.v1.DispatchAck
 	(*TokenChunk)(nil),            // 6: flock.tunnel.v1.TokenChunk
 	(*EmbeddingResult)(nil),       // 7: flock.tunnel.v1.EmbeddingResult
-	(*ChallengeResponse)(nil),     // 8: flock.tunnel.v1.ChallengeResponse
-	(*ModelStateUpdate)(nil),      // 9: flock.tunnel.v1.ModelStateUpdate
-	(*Goodbye)(nil),               // 10: flock.tunnel.v1.Goodbye
-	(*CoordinatorMessage)(nil),    // 11: flock.tunnel.v1.CoordinatorMessage
-	(*HelloAck)(nil),              // 12: flock.tunnel.v1.HelloAck
-	(*DispatchRequest)(nil),       // 13: flock.tunnel.v1.DispatchRequest
-	(*CancelRequest)(nil),         // 14: flock.tunnel.v1.CancelRequest
-	(*Challenge)(nil),             // 15: flock.tunnel.v1.Challenge
-	(*ModelAssignment)(nil),       // 16: flock.tunnel.v1.ModelAssignment
-	(*ConfigUpdate)(nil),          // 17: flock.tunnel.v1.ConfigUpdate
-	(*Drain)(nil),                 // 18: flock.tunnel.v1.Drain
-	(*EarningsSnapshot)(nil),      // 19: flock.tunnel.v1.EarningsSnapshot
-	(*v1.CapabilityProfile)(nil),  // 20: flock.types.v1.CapabilityProfile
-	(*timestamppb.Timestamp)(nil), // 21: google.protobuf.Timestamp
-	(*v1.ModelState)(nil),         // 22: flock.types.v1.ModelState
-	(*v1.ResourceBudget)(nil),     // 23: flock.types.v1.ResourceBudget
-	(v1.NodeState)(0),             // 24: flock.types.v1.NodeState
-	(v1.FinishReason)(0),          // 25: flock.types.v1.FinishReason
-	(*v1.Usage)(nil),              // 26: flock.types.v1.Usage
-	(v1.RequestKind)(0),           // 27: flock.types.v1.RequestKind
-	(*v1.GenerationParams)(nil),   // 28: flock.types.v1.GenerationParams
-	(*v1.ChatMessage)(nil),        // 29: flock.types.v1.ChatMessage
-	(*v1.ModelSpec)(nil),          // 30: flock.types.v1.ModelSpec
+	(*DecisionResult)(nil),        // 8: flock.tunnel.v1.DecisionResult
+	(*ChallengeResponse)(nil),     // 9: flock.tunnel.v1.ChallengeResponse
+	(*ModelStateUpdate)(nil),      // 10: flock.tunnel.v1.ModelStateUpdate
+	(*Goodbye)(nil),               // 11: flock.tunnel.v1.Goodbye
+	(*CoordinatorMessage)(nil),    // 12: flock.tunnel.v1.CoordinatorMessage
+	(*HelloAck)(nil),              // 13: flock.tunnel.v1.HelloAck
+	(*DispatchRequest)(nil),       // 14: flock.tunnel.v1.DispatchRequest
+	(*CancelRequest)(nil),         // 15: flock.tunnel.v1.CancelRequest
+	(*Challenge)(nil),             // 16: flock.tunnel.v1.Challenge
+	(*ModelAssignment)(nil),       // 17: flock.tunnel.v1.ModelAssignment
+	(*ConfigUpdate)(nil),          // 18: flock.tunnel.v1.ConfigUpdate
+	(*Drain)(nil),                 // 19: flock.tunnel.v1.Drain
+	(*EarningsSnapshot)(nil),      // 20: flock.tunnel.v1.EarningsSnapshot
+	(*v1.CapabilityProfile)(nil),  // 21: flock.types.v1.CapabilityProfile
+	(*timestamppb.Timestamp)(nil), // 22: google.protobuf.Timestamp
+	(*v1.ModelState)(nil),         // 23: flock.types.v1.ModelState
+	(*v1.ResourceBudget)(nil),     // 24: flock.types.v1.ResourceBudget
+	(v1.NodeState)(0),             // 25: flock.types.v1.NodeState
+	(v1.FinishReason)(0),          // 26: flock.types.v1.FinishReason
+	(*v1.Usage)(nil),              // 27: flock.types.v1.Usage
+	(*v1.DecisionAnswer)(nil),     // 28: flock.types.v1.DecisionAnswer
+	(v1.RequestKind)(0),           // 29: flock.types.v1.RequestKind
+	(*v1.GenerationParams)(nil),   // 30: flock.types.v1.GenerationParams
+	(*v1.ChatMessage)(nil),        // 31: flock.types.v1.ChatMessage
+	(*v1.DecisionInput)(nil),      // 32: flock.types.v1.DecisionInput
+	(*v1.ModelSpec)(nil),          // 33: flock.types.v1.ModelSpec
 }
 var file_flock_tunnel_v1_tunnel_proto_depIdxs = []int32{
-	20, // 0: flock.tunnel.v1.EnrollRequest.capability:type_name -> flock.types.v1.CapabilityProfile
-	21, // 1: flock.tunnel.v1.EnrollResponse.cert_expires_at:type_name -> google.protobuf.Timestamp
+	21, // 0: flock.tunnel.v1.EnrollRequest.capability:type_name -> flock.types.v1.CapabilityProfile
+	22, // 1: flock.tunnel.v1.EnrollResponse.cert_expires_at:type_name -> google.protobuf.Timestamp
 	3,  // 2: flock.tunnel.v1.NodeMessage.hello:type_name -> flock.tunnel.v1.Hello
 	4,  // 3: flock.tunnel.v1.NodeMessage.heartbeat:type_name -> flock.tunnel.v1.Heartbeat
 	6,  // 4: flock.tunnel.v1.NodeMessage.token_chunk:type_name -> flock.tunnel.v1.TokenChunk
 	5,  // 5: flock.tunnel.v1.NodeMessage.dispatch_ack:type_name -> flock.tunnel.v1.DispatchAck
-	8,  // 6: flock.tunnel.v1.NodeMessage.challenge_response:type_name -> flock.tunnel.v1.ChallengeResponse
-	9,  // 7: flock.tunnel.v1.NodeMessage.model_state:type_name -> flock.tunnel.v1.ModelStateUpdate
-	10, // 8: flock.tunnel.v1.NodeMessage.goodbye:type_name -> flock.tunnel.v1.Goodbye
+	9,  // 6: flock.tunnel.v1.NodeMessage.challenge_response:type_name -> flock.tunnel.v1.ChallengeResponse
+	10, // 7: flock.tunnel.v1.NodeMessage.model_state:type_name -> flock.tunnel.v1.ModelStateUpdate
+	11, // 8: flock.tunnel.v1.NodeMessage.goodbye:type_name -> flock.tunnel.v1.Goodbye
 	7,  // 9: flock.tunnel.v1.NodeMessage.embedding_result:type_name -> flock.tunnel.v1.EmbeddingResult
-	20, // 10: flock.tunnel.v1.Hello.capability:type_name -> flock.types.v1.CapabilityProfile
-	22, // 11: flock.tunnel.v1.Hello.models:type_name -> flock.types.v1.ModelState
-	23, // 12: flock.tunnel.v1.Hello.budget:type_name -> flock.types.v1.ResourceBudget
-	24, // 13: flock.tunnel.v1.Heartbeat.state:type_name -> flock.types.v1.NodeState
-	22, // 14: flock.tunnel.v1.Heartbeat.models:type_name -> flock.types.v1.ModelState
-	21, // 15: flock.tunnel.v1.Heartbeat.at:type_name -> google.protobuf.Timestamp
-	25, // 16: flock.tunnel.v1.TokenChunk.finish_reason:type_name -> flock.types.v1.FinishReason
-	26, // 17: flock.tunnel.v1.TokenChunk.usage:type_name -> flock.types.v1.Usage
-	26, // 18: flock.tunnel.v1.EmbeddingResult.usage:type_name -> flock.types.v1.Usage
-	22, // 19: flock.tunnel.v1.ModelStateUpdate.model:type_name -> flock.types.v1.ModelState
-	12, // 20: flock.tunnel.v1.CoordinatorMessage.hello_ack:type_name -> flock.tunnel.v1.HelloAck
-	13, // 21: flock.tunnel.v1.CoordinatorMessage.dispatch:type_name -> flock.tunnel.v1.DispatchRequest
-	14, // 22: flock.tunnel.v1.CoordinatorMessage.cancel:type_name -> flock.tunnel.v1.CancelRequest
-	15, // 23: flock.tunnel.v1.CoordinatorMessage.challenge:type_name -> flock.tunnel.v1.Challenge
-	16, // 24: flock.tunnel.v1.CoordinatorMessage.model_assignment:type_name -> flock.tunnel.v1.ModelAssignment
-	17, // 25: flock.tunnel.v1.CoordinatorMessage.config:type_name -> flock.tunnel.v1.ConfigUpdate
-	18, // 26: flock.tunnel.v1.CoordinatorMessage.drain:type_name -> flock.tunnel.v1.Drain
-	19, // 27: flock.tunnel.v1.CoordinatorMessage.earnings:type_name -> flock.tunnel.v1.EarningsSnapshot
-	27, // 28: flock.tunnel.v1.DispatchRequest.kind:type_name -> flock.types.v1.RequestKind
-	28, // 29: flock.tunnel.v1.DispatchRequest.params:type_name -> flock.types.v1.GenerationParams
-	29, // 30: flock.tunnel.v1.DispatchRequest.messages:type_name -> flock.types.v1.ChatMessage
-	21, // 31: flock.tunnel.v1.DispatchRequest.deadline:type_name -> google.protobuf.Timestamp
-	28, // 32: flock.tunnel.v1.Challenge.params:type_name -> flock.types.v1.GenerationParams
-	30, // 33: flock.tunnel.v1.ModelAssignment.assign:type_name -> flock.types.v1.ModelSpec
-	30, // 34: flock.tunnel.v1.ModelAssignment.stage:type_name -> flock.types.v1.ModelSpec
-	21, // 35: flock.tunnel.v1.Drain.deadline:type_name -> google.protobuf.Timestamp
-	21, // 36: flock.tunnel.v1.EarningsSnapshot.as_of:type_name -> google.protobuf.Timestamp
-	21, // 37: flock.tunnel.v1.EarningsSnapshot.next_vest_at:type_name -> google.protobuf.Timestamp
-	0,  // 38: flock.tunnel.v1.TunnelService.Enroll:input_type -> flock.tunnel.v1.EnrollRequest
-	2,  // 39: flock.tunnel.v1.TunnelService.Session:input_type -> flock.tunnel.v1.NodeMessage
-	1,  // 40: flock.tunnel.v1.TunnelService.Enroll:output_type -> flock.tunnel.v1.EnrollResponse
-	11, // 41: flock.tunnel.v1.TunnelService.Session:output_type -> flock.tunnel.v1.CoordinatorMessage
-	40, // [40:42] is the sub-list for method output_type
-	38, // [38:40] is the sub-list for method input_type
-	38, // [38:38] is the sub-list for extension type_name
-	38, // [38:38] is the sub-list for extension extendee
-	0,  // [0:38] is the sub-list for field type_name
+	8,  // 10: flock.tunnel.v1.NodeMessage.decision_result:type_name -> flock.tunnel.v1.DecisionResult
+	21, // 11: flock.tunnel.v1.Hello.capability:type_name -> flock.types.v1.CapabilityProfile
+	23, // 12: flock.tunnel.v1.Hello.models:type_name -> flock.types.v1.ModelState
+	24, // 13: flock.tunnel.v1.Hello.budget:type_name -> flock.types.v1.ResourceBudget
+	25, // 14: flock.tunnel.v1.Heartbeat.state:type_name -> flock.types.v1.NodeState
+	23, // 15: flock.tunnel.v1.Heartbeat.models:type_name -> flock.types.v1.ModelState
+	22, // 16: flock.tunnel.v1.Heartbeat.at:type_name -> google.protobuf.Timestamp
+	26, // 17: flock.tunnel.v1.TokenChunk.finish_reason:type_name -> flock.types.v1.FinishReason
+	27, // 18: flock.tunnel.v1.TokenChunk.usage:type_name -> flock.types.v1.Usage
+	27, // 19: flock.tunnel.v1.EmbeddingResult.usage:type_name -> flock.types.v1.Usage
+	28, // 20: flock.tunnel.v1.DecisionResult.answers:type_name -> flock.types.v1.DecisionAnswer
+	27, // 21: flock.tunnel.v1.DecisionResult.usage:type_name -> flock.types.v1.Usage
+	28, // 22: flock.tunnel.v1.ChallengeResponse.answers:type_name -> flock.types.v1.DecisionAnswer
+	23, // 23: flock.tunnel.v1.ModelStateUpdate.model:type_name -> flock.types.v1.ModelState
+	13, // 24: flock.tunnel.v1.CoordinatorMessage.hello_ack:type_name -> flock.tunnel.v1.HelloAck
+	14, // 25: flock.tunnel.v1.CoordinatorMessage.dispatch:type_name -> flock.tunnel.v1.DispatchRequest
+	15, // 26: flock.tunnel.v1.CoordinatorMessage.cancel:type_name -> flock.tunnel.v1.CancelRequest
+	16, // 27: flock.tunnel.v1.CoordinatorMessage.challenge:type_name -> flock.tunnel.v1.Challenge
+	17, // 28: flock.tunnel.v1.CoordinatorMessage.model_assignment:type_name -> flock.tunnel.v1.ModelAssignment
+	18, // 29: flock.tunnel.v1.CoordinatorMessage.config:type_name -> flock.tunnel.v1.ConfigUpdate
+	19, // 30: flock.tunnel.v1.CoordinatorMessage.drain:type_name -> flock.tunnel.v1.Drain
+	20, // 31: flock.tunnel.v1.CoordinatorMessage.earnings:type_name -> flock.tunnel.v1.EarningsSnapshot
+	29, // 32: flock.tunnel.v1.DispatchRequest.kind:type_name -> flock.types.v1.RequestKind
+	30, // 33: flock.tunnel.v1.DispatchRequest.params:type_name -> flock.types.v1.GenerationParams
+	31, // 34: flock.tunnel.v1.DispatchRequest.messages:type_name -> flock.types.v1.ChatMessage
+	22, // 35: flock.tunnel.v1.DispatchRequest.deadline:type_name -> google.protobuf.Timestamp
+	32, // 36: flock.tunnel.v1.DispatchRequest.decision:type_name -> flock.types.v1.DecisionInput
+	30, // 37: flock.tunnel.v1.Challenge.params:type_name -> flock.types.v1.GenerationParams
+	32, // 38: flock.tunnel.v1.Challenge.decision:type_name -> flock.types.v1.DecisionInput
+	33, // 39: flock.tunnel.v1.ModelAssignment.assign:type_name -> flock.types.v1.ModelSpec
+	33, // 40: flock.tunnel.v1.ModelAssignment.stage:type_name -> flock.types.v1.ModelSpec
+	22, // 41: flock.tunnel.v1.Drain.deadline:type_name -> google.protobuf.Timestamp
+	22, // 42: flock.tunnel.v1.EarningsSnapshot.as_of:type_name -> google.protobuf.Timestamp
+	22, // 43: flock.tunnel.v1.EarningsSnapshot.next_vest_at:type_name -> google.protobuf.Timestamp
+	0,  // 44: flock.tunnel.v1.TunnelService.Enroll:input_type -> flock.tunnel.v1.EnrollRequest
+	2,  // 45: flock.tunnel.v1.TunnelService.Session:input_type -> flock.tunnel.v1.NodeMessage
+	1,  // 46: flock.tunnel.v1.TunnelService.Enroll:output_type -> flock.tunnel.v1.EnrollResponse
+	12, // 47: flock.tunnel.v1.TunnelService.Session:output_type -> flock.tunnel.v1.CoordinatorMessage
+	46, // [46:48] is the sub-list for method output_type
+	44, // [44:46] is the sub-list for method input_type
+	44, // [44:44] is the sub-list for extension type_name
+	44, // [44:44] is the sub-list for extension extendee
+	0,  // [0:44] is the sub-list for field type_name
 }
 
 func init() { file_flock_tunnel_v1_tunnel_proto_init() }
@@ -2042,8 +2189,9 @@ func file_flock_tunnel_v1_tunnel_proto_init() {
 		(*NodeMessage_ModelState)(nil),
 		(*NodeMessage_Goodbye)(nil),
 		(*NodeMessage_EmbeddingResult)(nil),
+		(*NodeMessage_DecisionResult)(nil),
 	}
-	file_flock_tunnel_v1_tunnel_proto_msgTypes[11].OneofWrappers = []any{
+	file_flock_tunnel_v1_tunnel_proto_msgTypes[12].OneofWrappers = []any{
 		(*CoordinatorMessage_HelloAck)(nil),
 		(*CoordinatorMessage_Dispatch)(nil),
 		(*CoordinatorMessage_Cancel)(nil),
@@ -2059,7 +2207,7 @@ func file_flock_tunnel_v1_tunnel_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_flock_tunnel_v1_tunnel_proto_rawDesc), len(file_flock_tunnel_v1_tunnel_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   20,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

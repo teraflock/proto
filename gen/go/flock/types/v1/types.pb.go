@@ -29,6 +29,9 @@ const (
 	RequestKind_REQUEST_KIND_CHAT        RequestKind = 1
 	RequestKind_REQUEST_KIND_COMPLETION  RequestKind = 2
 	RequestKind_REQUEST_KIND_EMBEDDING   RequestKind = 3
+	// Typed decision (TypeSafe "System One" API, /v1/systemone): input is a
+	// DecisionInput, the result a list of DecisionAnswer. Never streamed.
+	RequestKind_REQUEST_KIND_DECISION RequestKind = 4
 )
 
 // Enum value maps for RequestKind.
@@ -38,12 +41,14 @@ var (
 		1: "REQUEST_KIND_CHAT",
 		2: "REQUEST_KIND_COMPLETION",
 		3: "REQUEST_KIND_EMBEDDING",
+		4: "REQUEST_KIND_DECISION",
 	}
 	RequestKind_value = map[string]int32{
 		"REQUEST_KIND_UNSPECIFIED": 0,
 		"REQUEST_KIND_CHAT":        1,
 		"REQUEST_KIND_COMPLETION":  2,
 		"REQUEST_KIND_EMBEDDING":   3,
+		"REQUEST_KIND_DECISION":    4,
 	}
 )
 
@@ -72,6 +77,61 @@ func (x RequestKind) Number() protoreflect.EnumNumber {
 // Deprecated: Use RequestKind.Descriptor instead.
 func (RequestKind) EnumDescriptor() ([]byte, []int) {
 	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{0}
+}
+
+type DecisionQuestionType int32
+
+const (
+	DecisionQuestionType_DECISION_QUESTION_TYPE_UNSPECIFIED DecisionQuestionType = 0
+	// Pick one of the labelled options.
+	DecisionQuestionType_DECISION_QUESTION_TYPE_CHOICE DecisionQuestionType = 1
+	// Place the state on an ordered scale of 2-10 levels, lowest first.
+	DecisionQuestionType_DECISION_QUESTION_TYPE_SCORE DecisionQuestionType = 2
+	// Probability that a yes/no statement is true ("noul").
+	DecisionQuestionType_DECISION_QUESTION_TYPE_NOUL DecisionQuestionType = 3
+)
+
+// Enum value maps for DecisionQuestionType.
+var (
+	DecisionQuestionType_name = map[int32]string{
+		0: "DECISION_QUESTION_TYPE_UNSPECIFIED",
+		1: "DECISION_QUESTION_TYPE_CHOICE",
+		2: "DECISION_QUESTION_TYPE_SCORE",
+		3: "DECISION_QUESTION_TYPE_NOUL",
+	}
+	DecisionQuestionType_value = map[string]int32{
+		"DECISION_QUESTION_TYPE_UNSPECIFIED": 0,
+		"DECISION_QUESTION_TYPE_CHOICE":      1,
+		"DECISION_QUESTION_TYPE_SCORE":       2,
+		"DECISION_QUESTION_TYPE_NOUL":        3,
+	}
+)
+
+func (x DecisionQuestionType) Enum() *DecisionQuestionType {
+	p := new(DecisionQuestionType)
+	*p = x
+	return p
+}
+
+func (x DecisionQuestionType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DecisionQuestionType) Descriptor() protoreflect.EnumDescriptor {
+	return file_flock_types_v1_types_proto_enumTypes[1].Descriptor()
+}
+
+func (DecisionQuestionType) Type() protoreflect.EnumType {
+	return &file_flock_types_v1_types_proto_enumTypes[1]
+}
+
+func (x DecisionQuestionType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DecisionQuestionType.Descriptor instead.
+func (DecisionQuestionType) EnumDescriptor() ([]byte, []int) {
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{1}
 }
 
 // Privacy tier per SPEC §2.1.
@@ -111,11 +171,11 @@ func (x Tier) String() string {
 }
 
 func (Tier) Descriptor() protoreflect.EnumDescriptor {
-	return file_flock_types_v1_types_proto_enumTypes[1].Descriptor()
+	return file_flock_types_v1_types_proto_enumTypes[2].Descriptor()
 }
 
 func (Tier) Type() protoreflect.EnumType {
-	return &file_flock_types_v1_types_proto_enumTypes[1]
+	return &file_flock_types_v1_types_proto_enumTypes[2]
 }
 
 func (x Tier) Number() protoreflect.EnumNumber {
@@ -124,7 +184,7 @@ func (x Tier) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Tier.Descriptor instead.
 func (Tier) EnumDescriptor() ([]byte, []int) {
-	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{1}
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{2}
 }
 
 type FinishReason int32
@@ -166,11 +226,11 @@ func (x FinishReason) String() string {
 }
 
 func (FinishReason) Descriptor() protoreflect.EnumDescriptor {
-	return file_flock_types_v1_types_proto_enumTypes[2].Descriptor()
+	return file_flock_types_v1_types_proto_enumTypes[3].Descriptor()
 }
 
 func (FinishReason) Type() protoreflect.EnumType {
-	return &file_flock_types_v1_types_proto_enumTypes[2]
+	return &file_flock_types_v1_types_proto_enumTypes[3]
 }
 
 func (x FinishReason) Number() protoreflect.EnumNumber {
@@ -179,7 +239,7 @@ func (x FinishReason) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FinishReason.Descriptor instead.
 func (FinishReason) EnumDescriptor() ([]byte, []int) {
-	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{2}
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{3}
 }
 
 // NodeState as reported in heartbeats.
@@ -223,11 +283,11 @@ func (x NodeState) String() string {
 }
 
 func (NodeState) Descriptor() protoreflect.EnumDescriptor {
-	return file_flock_types_v1_types_proto_enumTypes[3].Descriptor()
+	return file_flock_types_v1_types_proto_enumTypes[4].Descriptor()
 }
 
 func (NodeState) Type() protoreflect.EnumType {
-	return &file_flock_types_v1_types_proto_enumTypes[3]
+	return &file_flock_types_v1_types_proto_enumTypes[4]
 }
 
 func (x NodeState) Number() protoreflect.EnumNumber {
@@ -236,7 +296,7 @@ func (x NodeState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use NodeState.Descriptor instead.
 func (NodeState) EnumDescriptor() ([]byte, []int) {
-	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{3}
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{4}
 }
 
 // GpuInfo describes a single accelerator visible to the daemon.
@@ -557,7 +617,13 @@ type ModelSpec struct {
 	// Optional vision projector sidecar (mmproj-*.gguf), passed to
 	// llama-server --mmproj. Pinned like any other part; not counted in
 	// size_bytes.
-	Mmproj        *ArtifactPart `protobuf:"bytes,15,opt,name=mmproj,proto3" json:"mmproj,omitempty"`
+	Mmproj *ArtifactPart `protobuf:"bytes,15,opt,name=mmproj,proto3" json:"mmproj,omitempty"`
+	// Model is a typed decision model served for /v1/systemone (kind=DECISION):
+	// it scores the options of typed questions in a forward pass and
+	// generates no tokens. Mutually exclusive with embeddings. A daemon that
+	// predates this field cannot serve such a model; placement gates on
+	// CapabilityProfile.daemon_version (design note 2026-10-03).
+	Decision      bool `protobuf:"varint,16,opt,name=decision,proto3" json:"decision,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -695,6 +761,13 @@ func (x *ModelSpec) GetMmproj() *ArtifactPart {
 		return x.Mmproj
 	}
 	return nil
+}
+
+func (x *ModelSpec) GetDecision() bool {
+	if x != nil {
+		return x.Decision
+	}
+	return false
 }
 
 // ResourceBudget is the operator-configured ceiling the governor enforces.
@@ -937,6 +1010,333 @@ func (x *ChatMessage) GetContent() string {
 	return ""
 }
 
+type DecisionOption struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// choice: the customer's option key. score: the level index as a decimal
+	// string ("0", "1", ...), lowest level first. noul: "true" / "false",
+	// present only when the customer described them.
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// Compact JSON of the description (string, object or array). Empty means
+	// JSON null: the option has no description.
+	DescriptionJson string `protobuf:"bytes,2,opt,name=description_json,json=descriptionJson,proto3" json:"description_json,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *DecisionOption) Reset() {
+	*x = DecisionOption{}
+	mi := &file_flock_types_v1_types_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DecisionOption) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DecisionOption) ProtoMessage() {}
+
+func (x *DecisionOption) ProtoReflect() protoreflect.Message {
+	mi := &file_flock_types_v1_types_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DecisionOption.ProtoReflect.Descriptor instead.
+func (*DecisionOption) Descriptor() ([]byte, []int) {
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *DecisionOption) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *DecisionOption) GetDescriptionJson() string {
+	if x != nil {
+		return x.DescriptionJson
+	}
+	return ""
+}
+
+type DecisionQuestion struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // the customer's key in `questions`
+	Type             DecisionQuestionType   `protobuf:"varint,2,opt,name=type,proto3,enum=flock.types.v1.DecisionQuestionType" json:"type,omitempty"`
+	InstructionsJson string                 `protobuf:"bytes,3,opt,name=instructions_json,json=instructionsJson,proto3" json:"instructions_json,omitempty"` // compact JSON: string, object or array
+	// choice: 2..255 options. score: 2..10 levels. noul: empty, or exactly
+	// the "true" and "false" descriptions.
+	Options       []*DecisionOption `protobuf:"bytes,4,rep,name=options,proto3" json:"options,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DecisionQuestion) Reset() {
+	*x = DecisionQuestion{}
+	mi := &file_flock_types_v1_types_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DecisionQuestion) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DecisionQuestion) ProtoMessage() {}
+
+func (x *DecisionQuestion) ProtoReflect() protoreflect.Message {
+	mi := &file_flock_types_v1_types_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DecisionQuestion.ProtoReflect.Descriptor instead.
+func (*DecisionQuestion) Descriptor() ([]byte, []int) {
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *DecisionQuestion) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *DecisionQuestion) GetType() DecisionQuestionType {
+	if x != nil {
+		return x.Type
+	}
+	return DecisionQuestionType_DECISION_QUESTION_TYPE_UNSPECIFIED
+}
+
+func (x *DecisionQuestion) GetInstructionsJson() string {
+	if x != nil {
+		return x.InstructionsJson
+	}
+	return ""
+}
+
+func (x *DecisionQuestion) GetOptions() []*DecisionOption {
+	if x != nil {
+		return x.Options
+	}
+	return nil
+}
+
+type DecisionInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Compact JSON of the state: string, object or array.
+	StateJson     string              `protobuf:"bytes,1,opt,name=state_json,json=stateJson,proto3" json:"state_json,omitempty"`
+	Questions     []*DecisionQuestion `protobuf:"bytes,2,rep,name=questions,proto3" json:"questions,omitempty"` // in request order, ids unique
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DecisionInput) Reset() {
+	*x = DecisionInput{}
+	mi := &file_flock_types_v1_types_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DecisionInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DecisionInput) ProtoMessage() {}
+
+func (x *DecisionInput) ProtoReflect() protoreflect.Message {
+	mi := &file_flock_types_v1_types_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DecisionInput.ProtoReflect.Descriptor instead.
+func (*DecisionInput) Descriptor() ([]byte, []int) {
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *DecisionInput) GetStateJson() string {
+	if x != nil {
+		return x.StateJson
+	}
+	return ""
+}
+
+func (x *DecisionInput) GetQuestions() []*DecisionQuestion {
+	if x != nil {
+		return x.Questions
+	}
+	return nil
+}
+
+type DecisionProbability struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"` // option key, or level index for score
+	Probability   float64                `protobuf:"fixed64,2,opt,name=probability,proto3" json:"probability,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DecisionProbability) Reset() {
+	*x = DecisionProbability{}
+	mi := &file_flock_types_v1_types_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DecisionProbability) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DecisionProbability) ProtoMessage() {}
+
+func (x *DecisionProbability) ProtoReflect() protoreflect.Message {
+	mi := &file_flock_types_v1_types_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DecisionProbability.ProtoReflect.Descriptor instead.
+func (*DecisionProbability) Descriptor() ([]byte, []int) {
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *DecisionProbability) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *DecisionProbability) GetProbability() float64 {
+	if x != nil {
+		return x.Probability
+	}
+	return 0
+}
+
+type DecisionAnswer struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	QuestionId string                 `protobuf:"bytes,1,opt,name=question_id,json=questionId,proto3" json:"question_id,omitempty"`
+	Type       DecisionQuestionType   `protobuf:"varint,2,opt,name=type,proto3,enum=flock.types.v1.DecisionQuestionType" json:"type,omitempty"`
+	Choice     string                 `protobuf:"bytes,3,opt,name=choice,proto3" json:"choice,omitempty"` // CHOICE: the most probable option key
+	Score      float64                `protobuf:"fixed64,4,opt,name=score,proto3" json:"score,omitempty"` // SCORE: expected level index, may fall between levels
+	Noul       float64                `protobuf:"fixed64,5,opt,name=noul,proto3" json:"noul,omitempty"`   // NOUL: probability the statement is true
+	// CHOICE and SCORE: one entry per option in question order, summing to 1.
+	// Empty for NOUL.
+	Probabilities []*DecisionProbability `protobuf:"bytes,6,rep,name=probabilities,proto3" json:"probabilities,omitempty"`
+	// CHOICE and SCORE: 0..1, 0 = all options equally likely. Unset for NOUL.
+	Confidence    float64 `protobuf:"fixed64,7,opt,name=confidence,proto3" json:"confidence,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DecisionAnswer) Reset() {
+	*x = DecisionAnswer{}
+	mi := &file_flock_types_v1_types_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DecisionAnswer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DecisionAnswer) ProtoMessage() {}
+
+func (x *DecisionAnswer) ProtoReflect() protoreflect.Message {
+	mi := &file_flock_types_v1_types_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DecisionAnswer.ProtoReflect.Descriptor instead.
+func (*DecisionAnswer) Descriptor() ([]byte, []int) {
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *DecisionAnswer) GetQuestionId() string {
+	if x != nil {
+		return x.QuestionId
+	}
+	return ""
+}
+
+func (x *DecisionAnswer) GetType() DecisionQuestionType {
+	if x != nil {
+		return x.Type
+	}
+	return DecisionQuestionType_DECISION_QUESTION_TYPE_UNSPECIFIED
+}
+
+func (x *DecisionAnswer) GetChoice() string {
+	if x != nil {
+		return x.Choice
+	}
+	return ""
+}
+
+func (x *DecisionAnswer) GetScore() float64 {
+	if x != nil {
+		return x.Score
+	}
+	return 0
+}
+
+func (x *DecisionAnswer) GetNoul() float64 {
+	if x != nil {
+		return x.Noul
+	}
+	return 0
+}
+
+func (x *DecisionAnswer) GetProbabilities() []*DecisionProbability {
+	if x != nil {
+		return x.Probabilities
+	}
+	return nil
+}
+
+func (x *DecisionAnswer) GetConfidence() float64 {
+	if x != nil {
+		return x.Confidence
+	}
+	return 0
+}
+
 type Usage struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	PromptTokens     uint32                 `protobuf:"varint,1,opt,name=prompt_tokens,json=promptTokens,proto3" json:"prompt_tokens,omitempty"`
@@ -947,7 +1347,7 @@ type Usage struct {
 
 func (x *Usage) Reset() {
 	*x = Usage{}
-	mi := &file_flock_types_v1_types_proto_msgTypes[7]
+	mi := &file_flock_types_v1_types_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -959,7 +1359,7 @@ func (x *Usage) String() string {
 func (*Usage) ProtoMessage() {}
 
 func (x *Usage) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_types_v1_types_proto_msgTypes[7]
+	mi := &file_flock_types_v1_types_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -972,7 +1372,7 @@ func (x *Usage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Usage.ProtoReflect.Descriptor instead.
 func (*Usage) Descriptor() ([]byte, []int) {
-	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{7}
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *Usage) GetPromptTokens() uint32 {
@@ -1007,7 +1407,7 @@ type ModelState struct {
 
 func (x *ModelState) Reset() {
 	*x = ModelState{}
-	mi := &file_flock_types_v1_types_proto_msgTypes[8]
+	mi := &file_flock_types_v1_types_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1019,7 +1419,7 @@ func (x *ModelState) String() string {
 func (*ModelState) ProtoMessage() {}
 
 func (x *ModelState) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_types_v1_types_proto_msgTypes[8]
+	mi := &file_flock_types_v1_types_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1032,7 +1432,7 @@ func (x *ModelState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelState.ProtoReflect.Descriptor instead.
 func (*ModelState) Descriptor() ([]byte, []int) {
-	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{8}
+	return file_flock_types_v1_types_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ModelState) GetModelId() string {
@@ -1093,7 +1493,7 @@ const file_flock_types_v1_types_proto_rawDesc = "" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x16\n" +
 	"\x06sha256\x18\x02 \x01(\tR\x06sha256\x12\x1d\n" +
 	"\n" +
-	"size_bytes\x18\x03 \x01(\x04R\tsizeBytes\"\xea\x03\n" +
+	"size_bytes\x18\x03 \x01(\x04R\tsizeBytes\"\x86\x04\n" +
 	"\tModelSpec\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06family\x18\x02 \x01(\tR\x06family\x12\x19\n" +
@@ -1114,7 +1514,8 @@ const file_flock_types_v1_types_proto_rawDesc = "" +
 	"embeddings\x18\r \x01(\bR\n" +
 	"embeddings\x122\n" +
 	"\x05parts\x18\x0e \x03(\v2\x1c.flock.types.v1.ArtifactPartR\x05parts\x124\n" +
-	"\x06mmproj\x18\x0f \x01(\v2\x1c.flock.types.v1.ArtifactPartR\x06mmproj\"\xa7\x02\n" +
+	"\x06mmproj\x18\x0f \x01(\v2\x1c.flock.types.v1.ArtifactPartR\x06mmproj\x12\x1a\n" +
+	"\bdecision\x18\x10 \x01(\bR\bdecision\"\xa7\x02\n" +
 	"\x0eResourceBudget\x12(\n" +
 	"\x10max_vram_percent\x18\x01 \x01(\rR\x0emaxVramPercent\x12\x1c\n" +
 	"\n" +
@@ -1135,7 +1536,33 @@ const file_flock_types_v1_types_proto_rawDesc = "" +
 	"\x10presence_penalty\x18\a \x01(\x01R\x0fpresencePenalty\";\n" +
 	"\vChatMessage\x12\x12\n" +
 	"\x04role\x18\x01 \x01(\tR\x04role\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\tR\acontent\"Y\n" +
+	"\acontent\x18\x02 \x01(\tR\acontent\"M\n" +
+	"\x0eDecisionOption\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12)\n" +
+	"\x10description_json\x18\x02 \x01(\tR\x0fdescriptionJson\"\xc3\x01\n" +
+	"\x10DecisionQuestion\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x128\n" +
+	"\x04type\x18\x02 \x01(\x0e2$.flock.types.v1.DecisionQuestionTypeR\x04type\x12+\n" +
+	"\x11instructions_json\x18\x03 \x01(\tR\x10instructionsJson\x128\n" +
+	"\aoptions\x18\x04 \x03(\v2\x1e.flock.types.v1.DecisionOptionR\aoptions\"n\n" +
+	"\rDecisionInput\x12\x1d\n" +
+	"\n" +
+	"state_json\x18\x01 \x01(\tR\tstateJson\x12>\n" +
+	"\tquestions\x18\x02 \x03(\v2 .flock.types.v1.DecisionQuestionR\tquestions\"I\n" +
+	"\x13DecisionProbability\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12 \n" +
+	"\vprobability\x18\x02 \x01(\x01R\vprobability\"\x98\x02\n" +
+	"\x0eDecisionAnswer\x12\x1f\n" +
+	"\vquestion_id\x18\x01 \x01(\tR\n" +
+	"questionId\x128\n" +
+	"\x04type\x18\x02 \x01(\x0e2$.flock.types.v1.DecisionQuestionTypeR\x04type\x12\x16\n" +
+	"\x06choice\x18\x03 \x01(\tR\x06choice\x12\x14\n" +
+	"\x05score\x18\x04 \x01(\x01R\x05score\x12\x12\n" +
+	"\x04noul\x18\x05 \x01(\x01R\x04noul\x12I\n" +
+	"\rprobabilities\x18\x06 \x03(\v2#.flock.types.v1.DecisionProbabilityR\rprobabilities\x12\x1e\n" +
+	"\n" +
+	"confidence\x18\a \x01(\x01R\n" +
+	"confidence\"Y\n" +
 	"\x05Usage\x12#\n" +
 	"\rprompt_tokens\x18\x01 \x01(\rR\fpromptTokens\x12+\n" +
 	"\x11completion_tokens\x18\x02 \x01(\rR\x10completionTokens\"\x8e\x01\n" +
@@ -1144,12 +1571,18 @@ const file_flock_types_v1_types_proto_rawDesc = "" +
 	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x127\n" +
 	"\tloaded_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\bloadedAt\x12\x16\n" +
-	"\x06origin\x18\x04 \x01(\tR\x06origin*{\n" +
+	"\x06origin\x18\x04 \x01(\tR\x06origin*\x96\x01\n" +
 	"\vRequestKind\x12\x1c\n" +
 	"\x18REQUEST_KIND_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11REQUEST_KIND_CHAT\x10\x01\x12\x1b\n" +
 	"\x17REQUEST_KIND_COMPLETION\x10\x02\x12\x1a\n" +
-	"\x16REQUEST_KIND_EMBEDDING\x10\x03*P\n" +
+	"\x16REQUEST_KIND_EMBEDDING\x10\x03\x12\x19\n" +
+	"\x15REQUEST_KIND_DECISION\x10\x04*\xa4\x01\n" +
+	"\x14DecisionQuestionType\x12&\n" +
+	"\"DECISION_QUESTION_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dDECISION_QUESTION_TYPE_CHOICE\x10\x01\x12 \n" +
+	"\x1cDECISION_QUESTION_TYPE_SCORE\x10\x02\x12\x1f\n" +
+	"\x1bDECISION_QUESTION_TYPE_NOUL\x10\x03*P\n" +
 	"\x04Tier\x12\x14\n" +
 	"\x10TIER_UNSPECIFIED\x10\x00\x12\r\n" +
 	"\tTIER_OPEN\x10\x01\x12\x11\n" +
@@ -1180,34 +1613,45 @@ func file_flock_types_v1_types_proto_rawDescGZIP() []byte {
 	return file_flock_types_v1_types_proto_rawDescData
 }
 
-var file_flock_types_v1_types_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_flock_types_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_flock_types_v1_types_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_flock_types_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_flock_types_v1_types_proto_goTypes = []any{
 	(RequestKind)(0),              // 0: flock.types.v1.RequestKind
-	(Tier)(0),                     // 1: flock.types.v1.Tier
-	(FinishReason)(0),             // 2: flock.types.v1.FinishReason
-	(NodeState)(0),                // 3: flock.types.v1.NodeState
-	(*GpuInfo)(nil),               // 4: flock.types.v1.GpuInfo
-	(*CapabilityProfile)(nil),     // 5: flock.types.v1.CapabilityProfile
-	(*ArtifactPart)(nil),          // 6: flock.types.v1.ArtifactPart
-	(*ModelSpec)(nil),             // 7: flock.types.v1.ModelSpec
-	(*ResourceBudget)(nil),        // 8: flock.types.v1.ResourceBudget
-	(*GenerationParams)(nil),      // 9: flock.types.v1.GenerationParams
-	(*ChatMessage)(nil),           // 10: flock.types.v1.ChatMessage
-	(*Usage)(nil),                 // 11: flock.types.v1.Usage
-	(*ModelState)(nil),            // 12: flock.types.v1.ModelState
-	(*timestamppb.Timestamp)(nil), // 13: google.protobuf.Timestamp
+	(DecisionQuestionType)(0),     // 1: flock.types.v1.DecisionQuestionType
+	(Tier)(0),                     // 2: flock.types.v1.Tier
+	(FinishReason)(0),             // 3: flock.types.v1.FinishReason
+	(NodeState)(0),                // 4: flock.types.v1.NodeState
+	(*GpuInfo)(nil),               // 5: flock.types.v1.GpuInfo
+	(*CapabilityProfile)(nil),     // 6: flock.types.v1.CapabilityProfile
+	(*ArtifactPart)(nil),          // 7: flock.types.v1.ArtifactPart
+	(*ModelSpec)(nil),             // 8: flock.types.v1.ModelSpec
+	(*ResourceBudget)(nil),        // 9: flock.types.v1.ResourceBudget
+	(*GenerationParams)(nil),      // 10: flock.types.v1.GenerationParams
+	(*ChatMessage)(nil),           // 11: flock.types.v1.ChatMessage
+	(*DecisionOption)(nil),        // 12: flock.types.v1.DecisionOption
+	(*DecisionQuestion)(nil),      // 13: flock.types.v1.DecisionQuestion
+	(*DecisionInput)(nil),         // 14: flock.types.v1.DecisionInput
+	(*DecisionProbability)(nil),   // 15: flock.types.v1.DecisionProbability
+	(*DecisionAnswer)(nil),        // 16: flock.types.v1.DecisionAnswer
+	(*Usage)(nil),                 // 17: flock.types.v1.Usage
+	(*ModelState)(nil),            // 18: flock.types.v1.ModelState
+	(*timestamppb.Timestamp)(nil), // 19: google.protobuf.Timestamp
 }
 var file_flock_types_v1_types_proto_depIdxs = []int32{
-	4,  // 0: flock.types.v1.CapabilityProfile.gpus:type_name -> flock.types.v1.GpuInfo
-	6,  // 1: flock.types.v1.ModelSpec.parts:type_name -> flock.types.v1.ArtifactPart
-	6,  // 2: flock.types.v1.ModelSpec.mmproj:type_name -> flock.types.v1.ArtifactPart
-	13, // 3: flock.types.v1.ModelState.loaded_at:type_name -> google.protobuf.Timestamp
-	4,  // [4:4] is the sub-list for method output_type
-	4,  // [4:4] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	5,  // 0: flock.types.v1.CapabilityProfile.gpus:type_name -> flock.types.v1.GpuInfo
+	7,  // 1: flock.types.v1.ModelSpec.parts:type_name -> flock.types.v1.ArtifactPart
+	7,  // 2: flock.types.v1.ModelSpec.mmproj:type_name -> flock.types.v1.ArtifactPart
+	1,  // 3: flock.types.v1.DecisionQuestion.type:type_name -> flock.types.v1.DecisionQuestionType
+	12, // 4: flock.types.v1.DecisionQuestion.options:type_name -> flock.types.v1.DecisionOption
+	13, // 5: flock.types.v1.DecisionInput.questions:type_name -> flock.types.v1.DecisionQuestion
+	1,  // 6: flock.types.v1.DecisionAnswer.type:type_name -> flock.types.v1.DecisionQuestionType
+	15, // 7: flock.types.v1.DecisionAnswer.probabilities:type_name -> flock.types.v1.DecisionProbability
+	19, // 8: flock.types.v1.ModelState.loaded_at:type_name -> google.protobuf.Timestamp
+	9,  // [9:9] is the sub-list for method output_type
+	9,  // [9:9] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_flock_types_v1_types_proto_init() }
@@ -1220,8 +1664,8 @@ func file_flock_types_v1_types_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_flock_types_v1_types_proto_rawDesc), len(file_flock_types_v1_types_proto_rawDesc)),
-			NumEnums:      4,
-			NumMessages:   9,
+			NumEnums:      5,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -374,6 +374,160 @@ func (x *RouteEmbeddingResponse) GetServedByNodeId() string {
 	return ""
 }
 
+type RouteDecisionRequest struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	RequestId string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	ModelId   string                 `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	Tier      v1.Tier                `protobuf:"varint,3,opt,name=tier,proto3,enum=flock.types.v1.Tier" json:"tier,omitempty"`
+	Input     *v1.DecisionInput      `protobuf:"bytes,4,opt,name=input,proto3" json:"input,omitempty"`
+	// "interactive" or "batch", as RouteRequest.latency_class.
+	LatencyClass  string `protobuf:"bytes,5,opt,name=latency_class,json=latencyClass,proto3" json:"latency_class,omitempty"`
+	MaxLatencyMs  uint32 `protobuf:"varint,6,opt,name=max_latency_ms,json=maxLatencyMs,proto3" json:"max_latency_ms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RouteDecisionRequest) Reset() {
+	*x = RouteDecisionRequest{}
+	mi := &file_flock_control_v1_control_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RouteDecisionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RouteDecisionRequest) ProtoMessage() {}
+
+func (x *RouteDecisionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_flock_control_v1_control_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RouteDecisionRequest.ProtoReflect.Descriptor instead.
+func (*RouteDecisionRequest) Descriptor() ([]byte, []int) {
+	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *RouteDecisionRequest) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *RouteDecisionRequest) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
+func (x *RouteDecisionRequest) GetTier() v1.Tier {
+	if x != nil {
+		return x.Tier
+	}
+	return v1.Tier(0)
+}
+
+func (x *RouteDecisionRequest) GetInput() *v1.DecisionInput {
+	if x != nil {
+		return x.Input
+	}
+	return nil
+}
+
+func (x *RouteDecisionRequest) GetLatencyClass() string {
+	if x != nil {
+		return x.LatencyClass
+	}
+	return ""
+}
+
+func (x *RouteDecisionRequest) GetMaxLatencyMs() uint32 {
+	if x != nil {
+		return x.MaxLatencyMs
+	}
+	return 0
+}
+
+type RouteDecisionResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Answers        []*v1.DecisionAnswer   `protobuf:"bytes,1,rep,name=answers,proto3" json:"answers,omitempty"` // in question order
+	Usage          *v1.Usage              `protobuf:"bytes,2,opt,name=usage,proto3" json:"usage,omitempty"`
+	ServedByNodeId string                 `protobuf:"bytes,3,opt,name=served_by_node_id,json=servedByNodeId,proto3" json:"served_by_node_id,omitempty"`
+	// Wall time the node took, for the latency the console shows.
+	LatencyMs     uint32 `protobuf:"varint,4,opt,name=latency_ms,json=latencyMs,proto3" json:"latency_ms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RouteDecisionResponse) Reset() {
+	*x = RouteDecisionResponse{}
+	mi := &file_flock_control_v1_control_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RouteDecisionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RouteDecisionResponse) ProtoMessage() {}
+
+func (x *RouteDecisionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_flock_control_v1_control_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RouteDecisionResponse.ProtoReflect.Descriptor instead.
+func (*RouteDecisionResponse) Descriptor() ([]byte, []int) {
+	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *RouteDecisionResponse) GetAnswers() []*v1.DecisionAnswer {
+	if x != nil {
+		return x.Answers
+	}
+	return nil
+}
+
+func (x *RouteDecisionResponse) GetUsage() *v1.Usage {
+	if x != nil {
+		return x.Usage
+	}
+	return nil
+}
+
+func (x *RouteDecisionResponse) GetServedByNodeId() string {
+	if x != nil {
+		return x.ServedByNodeId
+	}
+	return ""
+}
+
+func (x *RouteDecisionResponse) GetLatencyMs() uint32 {
+	if x != nil {
+		return x.LatencyMs
+	}
+	return 0
+}
+
 type ListNodesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	StatusFilter  string                 `protobuf:"bytes,1,opt,name=status_filter,json=statusFilter,proto3" json:"status_filter,omitempty"` // "", "online", "probation", "banned"
@@ -385,7 +539,7 @@ type ListNodesRequest struct {
 
 func (x *ListNodesRequest) Reset() {
 	*x = ListNodesRequest{}
-	mi := &file_flock_control_v1_control_proto_msgTypes[4]
+	mi := &file_flock_control_v1_control_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -397,7 +551,7 @@ func (x *ListNodesRequest) String() string {
 func (*ListNodesRequest) ProtoMessage() {}
 
 func (x *ListNodesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_control_v1_control_proto_msgTypes[4]
+	mi := &file_flock_control_v1_control_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -410,7 +564,7 @@ func (x *ListNodesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNodesRequest.ProtoReflect.Descriptor instead.
 func (*ListNodesRequest) Descriptor() ([]byte, []int) {
-	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{4}
+	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ListNodesRequest) GetStatusFilter() string {
@@ -459,7 +613,7 @@ type NodeSummary struct {
 
 func (x *NodeSummary) Reset() {
 	*x = NodeSummary{}
-	mi := &file_flock_control_v1_control_proto_msgTypes[5]
+	mi := &file_flock_control_v1_control_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -471,7 +625,7 @@ func (x *NodeSummary) String() string {
 func (*NodeSummary) ProtoMessage() {}
 
 func (x *NodeSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_control_v1_control_proto_msgTypes[5]
+	mi := &file_flock_control_v1_control_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -484,7 +638,7 @@ func (x *NodeSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeSummary.ProtoReflect.Descriptor instead.
 func (*NodeSummary) Descriptor() ([]byte, []int) {
-	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{5}
+	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *NodeSummary) GetNodeId() string {
@@ -588,7 +742,7 @@ type ListNodesResponse struct {
 
 func (x *ListNodesResponse) Reset() {
 	*x = ListNodesResponse{}
-	mi := &file_flock_control_v1_control_proto_msgTypes[6]
+	mi := &file_flock_control_v1_control_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -600,7 +754,7 @@ func (x *ListNodesResponse) String() string {
 func (*ListNodesResponse) ProtoMessage() {}
 
 func (x *ListNodesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_control_v1_control_proto_msgTypes[6]
+	mi := &file_flock_control_v1_control_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -613,7 +767,7 @@ func (x *ListNodesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNodesResponse.ProtoReflect.Descriptor instead.
 func (*ListNodesResponse) Descriptor() ([]byte, []int) {
-	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{6}
+	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListNodesResponse) GetNodes() []*NodeSummary {
@@ -638,7 +792,7 @@ type FleetStatusRequest struct {
 
 func (x *FleetStatusRequest) Reset() {
 	*x = FleetStatusRequest{}
-	mi := &file_flock_control_v1_control_proto_msgTypes[7]
+	mi := &file_flock_control_v1_control_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -650,7 +804,7 @@ func (x *FleetStatusRequest) String() string {
 func (*FleetStatusRequest) ProtoMessage() {}
 
 func (x *FleetStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_control_v1_control_proto_msgTypes[7]
+	mi := &file_flock_control_v1_control_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -663,7 +817,7 @@ func (x *FleetStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FleetStatusRequest.ProtoReflect.Descriptor instead.
 func (*FleetStatusRequest) Descriptor() ([]byte, []int) {
-	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{7}
+	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{9}
 }
 
 type ReinstateNodeRequest struct {
@@ -676,7 +830,7 @@ type ReinstateNodeRequest struct {
 
 func (x *ReinstateNodeRequest) Reset() {
 	*x = ReinstateNodeRequest{}
-	mi := &file_flock_control_v1_control_proto_msgTypes[8]
+	mi := &file_flock_control_v1_control_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -688,7 +842,7 @@ func (x *ReinstateNodeRequest) String() string {
 func (*ReinstateNodeRequest) ProtoMessage() {}
 
 func (x *ReinstateNodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_control_v1_control_proto_msgTypes[8]
+	mi := &file_flock_control_v1_control_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -701,7 +855,7 @@ func (x *ReinstateNodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReinstateNodeRequest.ProtoReflect.Descriptor instead.
 func (*ReinstateNodeRequest) Descriptor() ([]byte, []int) {
-	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{8}
+	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ReinstateNodeRequest) GetNodeId() string {
@@ -727,7 +881,7 @@ type ReinstateNodeResponse struct {
 
 func (x *ReinstateNodeResponse) Reset() {
 	*x = ReinstateNodeResponse{}
-	mi := &file_flock_control_v1_control_proto_msgTypes[9]
+	mi := &file_flock_control_v1_control_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -739,7 +893,7 @@ func (x *ReinstateNodeResponse) String() string {
 func (*ReinstateNodeResponse) ProtoMessage() {}
 
 func (x *ReinstateNodeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_control_v1_control_proto_msgTypes[9]
+	mi := &file_flock_control_v1_control_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -752,7 +906,7 @@ func (x *ReinstateNodeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReinstateNodeResponse.ProtoReflect.Descriptor instead.
 func (*ReinstateNodeResponse) Descriptor() ([]byte, []int) {
-	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{9}
+	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ReinstateNodeResponse) GetNode() *NodeSummary {
@@ -777,7 +931,7 @@ type ModelFleetStatus struct {
 
 func (x *ModelFleetStatus) Reset() {
 	*x = ModelFleetStatus{}
-	mi := &file_flock_control_v1_control_proto_msgTypes[10]
+	mi := &file_flock_control_v1_control_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -789,7 +943,7 @@ func (x *ModelFleetStatus) String() string {
 func (*ModelFleetStatus) ProtoMessage() {}
 
 func (x *ModelFleetStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_control_v1_control_proto_msgTypes[10]
+	mi := &file_flock_control_v1_control_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -802,7 +956,7 @@ func (x *ModelFleetStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelFleetStatus.ProtoReflect.Descriptor instead.
 func (*ModelFleetStatus) Descriptor() ([]byte, []int) {
-	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{10}
+	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ModelFleetStatus) GetModelId() string {
@@ -865,7 +1019,7 @@ type FleetStatusResponse struct {
 
 func (x *FleetStatusResponse) Reset() {
 	*x = FleetStatusResponse{}
-	mi := &file_flock_control_v1_control_proto_msgTypes[11]
+	mi := &file_flock_control_v1_control_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -877,7 +1031,7 @@ func (x *FleetStatusResponse) String() string {
 func (*FleetStatusResponse) ProtoMessage() {}
 
 func (x *FleetStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_flock_control_v1_control_proto_msgTypes[11]
+	mi := &file_flock_control_v1_control_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -890,7 +1044,7 @@ func (x *FleetStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FleetStatusResponse.ProtoReflect.Descriptor instead.
 func (*FleetStatusResponse) Descriptor() ([]byte, []int) {
-	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{11}
+	return file_flock_control_v1_control_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *FleetStatusResponse) GetModels() []*ModelFleetStatus {
@@ -952,7 +1106,21 @@ const file_flock_control_v1_control_proto_rawDesc = "" +
 	"embeddings\x12\x12\n" +
 	"\x04dims\x18\x02 \x01(\rR\x04dims\x12+\n" +
 	"\x05usage\x18\x03 \x01(\v2\x15.flock.types.v1.UsageR\x05usage\x12)\n" +
-	"\x11served_by_node_id\x18\x04 \x01(\tR\x0eservedByNodeId\"s\n" +
+	"\x11served_by_node_id\x18\x04 \x01(\tR\x0eservedByNodeId\"\xfa\x01\n" +
+	"\x14RouteDecisionRequest\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x12\x19\n" +
+	"\bmodel_id\x18\x02 \x01(\tR\amodelId\x12(\n" +
+	"\x04tier\x18\x03 \x01(\x0e2\x14.flock.types.v1.TierR\x04tier\x123\n" +
+	"\x05input\x18\x04 \x01(\v2\x1d.flock.types.v1.DecisionInputR\x05input\x12#\n" +
+	"\rlatency_class\x18\x05 \x01(\tR\flatencyClass\x12$\n" +
+	"\x0emax_latency_ms\x18\x06 \x01(\rR\fmaxLatencyMs\"\xc8\x01\n" +
+	"\x15RouteDecisionResponse\x128\n" +
+	"\aanswers\x18\x01 \x03(\v2\x1e.flock.types.v1.DecisionAnswerR\aanswers\x12+\n" +
+	"\x05usage\x18\x02 \x01(\v2\x15.flock.types.v1.UsageR\x05usage\x12)\n" +
+	"\x11served_by_node_id\x18\x03 \x01(\tR\x0eservedByNodeId\x12\x1d\n" +
+	"\n" +
+	"latency_ms\x18\x04 \x01(\rR\tlatencyMs\"s\n" +
 	"\x10ListNodesRequest\x12#\n" +
 	"\rstatus_filter\x18\x01 \x01(\tR\fstatusFilter\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\rR\bpageSize\x12\x1d\n" +
@@ -1000,10 +1168,11 @@ const file_flock_control_v1_control_proto_rawDesc = "" +
 	"\x13FleetStatusResponse\x12:\n" +
 	"\x06models\x18\x01 \x03(\v2\".flock.control.v1.ModelFleetStatusR\x06models\x12!\n" +
 	"\fnodes_online\x18\x02 \x01(\rR\vnodesOnline\x12'\n" +
-	"\x0fnodes_probation\x18\x03 \x01(\rR\x0enodesProbation2\xd2\x03\n" +
+	"\x0fnodes_probation\x18\x03 \x01(\rR\x0enodesProbation2\xb4\x04\n" +
 	"\x0eControlService\x12G\n" +
 	"\x05Route\x12\x1e.flock.control.v1.RouteRequest\x1a\x1c.flock.control.v1.RouteChunk0\x01\x12c\n" +
-	"\x0eRouteEmbedding\x12'.flock.control.v1.RouteEmbeddingRequest\x1a(.flock.control.v1.RouteEmbeddingResponse\x12T\n" +
+	"\x0eRouteEmbedding\x12'.flock.control.v1.RouteEmbeddingRequest\x1a(.flock.control.v1.RouteEmbeddingResponse\x12`\n" +
+	"\rRouteDecision\x12&.flock.control.v1.RouteDecisionRequest\x1a'.flock.control.v1.RouteDecisionResponse\x12T\n" +
 	"\tListNodes\x12\".flock.control.v1.ListNodesRequest\x1a#.flock.control.v1.ListNodesResponse\x12Z\n" +
 	"\vFleetStatus\x12$.flock.control.v1.FleetStatusRequest\x1a%.flock.control.v1.FleetStatusResponse\x12`\n" +
 	"\rReinstateNode\x12&.flock.control.v1.ReinstateNodeRequest\x1a'.flock.control.v1.ReinstateNodeResponseB>Z<github.com/teraflock/proto/gen/go/flock/control/v1;controlv1b\x06proto3"
@@ -1020,64 +1189,74 @@ func file_flock_control_v1_control_proto_rawDescGZIP() []byte {
 	return file_flock_control_v1_control_proto_rawDescData
 }
 
-var file_flock_control_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_flock_control_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_flock_control_v1_control_proto_goTypes = []any{
 	(*RouteRequest)(nil),           // 0: flock.control.v1.RouteRequest
 	(*RouteChunk)(nil),             // 1: flock.control.v1.RouteChunk
 	(*RouteEmbeddingRequest)(nil),  // 2: flock.control.v1.RouteEmbeddingRequest
 	(*RouteEmbeddingResponse)(nil), // 3: flock.control.v1.RouteEmbeddingResponse
-	(*ListNodesRequest)(nil),       // 4: flock.control.v1.ListNodesRequest
-	(*NodeSummary)(nil),            // 5: flock.control.v1.NodeSummary
-	(*ListNodesResponse)(nil),      // 6: flock.control.v1.ListNodesResponse
-	(*FleetStatusRequest)(nil),     // 7: flock.control.v1.FleetStatusRequest
-	(*ReinstateNodeRequest)(nil),   // 8: flock.control.v1.ReinstateNodeRequest
-	(*ReinstateNodeResponse)(nil),  // 9: flock.control.v1.ReinstateNodeResponse
-	(*ModelFleetStatus)(nil),       // 10: flock.control.v1.ModelFleetStatus
-	(*FleetStatusResponse)(nil),    // 11: flock.control.v1.FleetStatusResponse
-	(v1.RequestKind)(0),            // 12: flock.types.v1.RequestKind
-	(v1.Tier)(0),                   // 13: flock.types.v1.Tier
-	(*v1.GenerationParams)(nil),    // 14: flock.types.v1.GenerationParams
-	(*v1.ChatMessage)(nil),         // 15: flock.types.v1.ChatMessage
-	(v1.FinishReason)(0),           // 16: flock.types.v1.FinishReason
-	(*v1.Usage)(nil),               // 17: flock.types.v1.Usage
-	(v1.NodeState)(0),              // 18: flock.types.v1.NodeState
-	(*v1.CapabilityProfile)(nil),   // 19: flock.types.v1.CapabilityProfile
-	(*v1.ModelState)(nil),          // 20: flock.types.v1.ModelState
-	(*timestamppb.Timestamp)(nil),  // 21: google.protobuf.Timestamp
-	(*v1.ResourceBudget)(nil),      // 22: flock.types.v1.ResourceBudget
+	(*RouteDecisionRequest)(nil),   // 4: flock.control.v1.RouteDecisionRequest
+	(*RouteDecisionResponse)(nil),  // 5: flock.control.v1.RouteDecisionResponse
+	(*ListNodesRequest)(nil),       // 6: flock.control.v1.ListNodesRequest
+	(*NodeSummary)(nil),            // 7: flock.control.v1.NodeSummary
+	(*ListNodesResponse)(nil),      // 8: flock.control.v1.ListNodesResponse
+	(*FleetStatusRequest)(nil),     // 9: flock.control.v1.FleetStatusRequest
+	(*ReinstateNodeRequest)(nil),   // 10: flock.control.v1.ReinstateNodeRequest
+	(*ReinstateNodeResponse)(nil),  // 11: flock.control.v1.ReinstateNodeResponse
+	(*ModelFleetStatus)(nil),       // 12: flock.control.v1.ModelFleetStatus
+	(*FleetStatusResponse)(nil),    // 13: flock.control.v1.FleetStatusResponse
+	(v1.RequestKind)(0),            // 14: flock.types.v1.RequestKind
+	(v1.Tier)(0),                   // 15: flock.types.v1.Tier
+	(*v1.GenerationParams)(nil),    // 16: flock.types.v1.GenerationParams
+	(*v1.ChatMessage)(nil),         // 17: flock.types.v1.ChatMessage
+	(v1.FinishReason)(0),           // 18: flock.types.v1.FinishReason
+	(*v1.Usage)(nil),               // 19: flock.types.v1.Usage
+	(*v1.DecisionInput)(nil),       // 20: flock.types.v1.DecisionInput
+	(*v1.DecisionAnswer)(nil),      // 21: flock.types.v1.DecisionAnswer
+	(v1.NodeState)(0),              // 22: flock.types.v1.NodeState
+	(*v1.CapabilityProfile)(nil),   // 23: flock.types.v1.CapabilityProfile
+	(*v1.ModelState)(nil),          // 24: flock.types.v1.ModelState
+	(*timestamppb.Timestamp)(nil),  // 25: google.protobuf.Timestamp
+	(*v1.ResourceBudget)(nil),      // 26: flock.types.v1.ResourceBudget
 }
 var file_flock_control_v1_control_proto_depIdxs = []int32{
-	12, // 0: flock.control.v1.RouteRequest.kind:type_name -> flock.types.v1.RequestKind
-	13, // 1: flock.control.v1.RouteRequest.tier:type_name -> flock.types.v1.Tier
-	14, // 2: flock.control.v1.RouteRequest.params:type_name -> flock.types.v1.GenerationParams
-	15, // 3: flock.control.v1.RouteRequest.messages:type_name -> flock.types.v1.ChatMessage
-	16, // 4: flock.control.v1.RouteChunk.finish_reason:type_name -> flock.types.v1.FinishReason
-	17, // 5: flock.control.v1.RouteChunk.usage:type_name -> flock.types.v1.Usage
-	13, // 6: flock.control.v1.RouteEmbeddingRequest.tier:type_name -> flock.types.v1.Tier
-	17, // 7: flock.control.v1.RouteEmbeddingResponse.usage:type_name -> flock.types.v1.Usage
-	18, // 8: flock.control.v1.NodeSummary.state:type_name -> flock.types.v1.NodeState
-	19, // 9: flock.control.v1.NodeSummary.capability:type_name -> flock.types.v1.CapabilityProfile
-	20, // 10: flock.control.v1.NodeSummary.models:type_name -> flock.types.v1.ModelState
-	21, // 11: flock.control.v1.NodeSummary.last_seen:type_name -> google.protobuf.Timestamp
-	22, // 12: flock.control.v1.NodeSummary.budget:type_name -> flock.types.v1.ResourceBudget
-	5,  // 13: flock.control.v1.ListNodesResponse.nodes:type_name -> flock.control.v1.NodeSummary
-	5,  // 14: flock.control.v1.ReinstateNodeResponse.node:type_name -> flock.control.v1.NodeSummary
-	10, // 15: flock.control.v1.FleetStatusResponse.models:type_name -> flock.control.v1.ModelFleetStatus
-	0,  // 16: flock.control.v1.ControlService.Route:input_type -> flock.control.v1.RouteRequest
-	2,  // 17: flock.control.v1.ControlService.RouteEmbedding:input_type -> flock.control.v1.RouteEmbeddingRequest
-	4,  // 18: flock.control.v1.ControlService.ListNodes:input_type -> flock.control.v1.ListNodesRequest
-	7,  // 19: flock.control.v1.ControlService.FleetStatus:input_type -> flock.control.v1.FleetStatusRequest
-	8,  // 20: flock.control.v1.ControlService.ReinstateNode:input_type -> flock.control.v1.ReinstateNodeRequest
-	1,  // 21: flock.control.v1.ControlService.Route:output_type -> flock.control.v1.RouteChunk
-	3,  // 22: flock.control.v1.ControlService.RouteEmbedding:output_type -> flock.control.v1.RouteEmbeddingResponse
-	6,  // 23: flock.control.v1.ControlService.ListNodes:output_type -> flock.control.v1.ListNodesResponse
-	11, // 24: flock.control.v1.ControlService.FleetStatus:output_type -> flock.control.v1.FleetStatusResponse
-	9,  // 25: flock.control.v1.ControlService.ReinstateNode:output_type -> flock.control.v1.ReinstateNodeResponse
-	21, // [21:26] is the sub-list for method output_type
-	16, // [16:21] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	14, // 0: flock.control.v1.RouteRequest.kind:type_name -> flock.types.v1.RequestKind
+	15, // 1: flock.control.v1.RouteRequest.tier:type_name -> flock.types.v1.Tier
+	16, // 2: flock.control.v1.RouteRequest.params:type_name -> flock.types.v1.GenerationParams
+	17, // 3: flock.control.v1.RouteRequest.messages:type_name -> flock.types.v1.ChatMessage
+	18, // 4: flock.control.v1.RouteChunk.finish_reason:type_name -> flock.types.v1.FinishReason
+	19, // 5: flock.control.v1.RouteChunk.usage:type_name -> flock.types.v1.Usage
+	15, // 6: flock.control.v1.RouteEmbeddingRequest.tier:type_name -> flock.types.v1.Tier
+	19, // 7: flock.control.v1.RouteEmbeddingResponse.usage:type_name -> flock.types.v1.Usage
+	15, // 8: flock.control.v1.RouteDecisionRequest.tier:type_name -> flock.types.v1.Tier
+	20, // 9: flock.control.v1.RouteDecisionRequest.input:type_name -> flock.types.v1.DecisionInput
+	21, // 10: flock.control.v1.RouteDecisionResponse.answers:type_name -> flock.types.v1.DecisionAnswer
+	19, // 11: flock.control.v1.RouteDecisionResponse.usage:type_name -> flock.types.v1.Usage
+	22, // 12: flock.control.v1.NodeSummary.state:type_name -> flock.types.v1.NodeState
+	23, // 13: flock.control.v1.NodeSummary.capability:type_name -> flock.types.v1.CapabilityProfile
+	24, // 14: flock.control.v1.NodeSummary.models:type_name -> flock.types.v1.ModelState
+	25, // 15: flock.control.v1.NodeSummary.last_seen:type_name -> google.protobuf.Timestamp
+	26, // 16: flock.control.v1.NodeSummary.budget:type_name -> flock.types.v1.ResourceBudget
+	7,  // 17: flock.control.v1.ListNodesResponse.nodes:type_name -> flock.control.v1.NodeSummary
+	7,  // 18: flock.control.v1.ReinstateNodeResponse.node:type_name -> flock.control.v1.NodeSummary
+	12, // 19: flock.control.v1.FleetStatusResponse.models:type_name -> flock.control.v1.ModelFleetStatus
+	0,  // 20: flock.control.v1.ControlService.Route:input_type -> flock.control.v1.RouteRequest
+	2,  // 21: flock.control.v1.ControlService.RouteEmbedding:input_type -> flock.control.v1.RouteEmbeddingRequest
+	4,  // 22: flock.control.v1.ControlService.RouteDecision:input_type -> flock.control.v1.RouteDecisionRequest
+	6,  // 23: flock.control.v1.ControlService.ListNodes:input_type -> flock.control.v1.ListNodesRequest
+	9,  // 24: flock.control.v1.ControlService.FleetStatus:input_type -> flock.control.v1.FleetStatusRequest
+	10, // 25: flock.control.v1.ControlService.ReinstateNode:input_type -> flock.control.v1.ReinstateNodeRequest
+	1,  // 26: flock.control.v1.ControlService.Route:output_type -> flock.control.v1.RouteChunk
+	3,  // 27: flock.control.v1.ControlService.RouteEmbedding:output_type -> flock.control.v1.RouteEmbeddingResponse
+	5,  // 28: flock.control.v1.ControlService.RouteDecision:output_type -> flock.control.v1.RouteDecisionResponse
+	8,  // 29: flock.control.v1.ControlService.ListNodes:output_type -> flock.control.v1.ListNodesResponse
+	13, // 30: flock.control.v1.ControlService.FleetStatus:output_type -> flock.control.v1.FleetStatusResponse
+	11, // 31: flock.control.v1.ControlService.ReinstateNode:output_type -> flock.control.v1.ReinstateNodeResponse
+	26, // [26:32] is the sub-list for method output_type
+	20, // [20:26] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_flock_control_v1_control_proto_init() }
@@ -1091,7 +1270,7 @@ func file_flock_control_v1_control_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_flock_control_v1_control_proto_rawDesc), len(file_flock_control_v1_control_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

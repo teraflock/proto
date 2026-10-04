@@ -62,6 +62,7 @@ message NodeMessage {
     ModelStateUpdate model_state = 6;
     Goodbye goodbye = 7;
     EmbeddingResult embedding_result = 8;
+    DecisionResult decision_result = 9;
   }
 }
 
@@ -120,6 +121,20 @@ message EmbeddingResult {
   string error = 5;
 }
 
+// DecisionResult is the whole answer to a kind=DECISION dispatch: one
+// message, no stream. usage.prompt_tokens is the runtime's input-token
+// count across all questions; completion_tokens is always 0.
+message DecisionResult {
+  string request_id = 1;
+  repeated flock.types.v1.DecisionAnswer answers = 2; // in question order
+  flock.types.v1.Usage usage = 3;
+  string error = 4;
+  // True when the runtime rejected the input itself (too many options for
+  // this model, prompt over the model's context): retrying on another node
+  // cannot help, so the coordinator stops and the gateway answers 422.
+  bool invalid_input = 5;
+}
+
 message ChallengeResponse {
   string challenge_id = 1;
   string output = 2;
@@ -128,6 +143,10 @@ message ChallengeResponse {
   string output_sha256 = 3;
   uint32 completion_tokens = 4;
   double tokens_per_sec = 5;
+  // Decision challenge (Challenge.decision set): the answers, compared
+  // against the private expected probabilities within a tolerance. output
+  // and output_sha256 are empty.
+  repeated flock.types.v1.DecisionAnswer answers = 6;
 }
 
 message ModelStateUpdate {
@@ -177,6 +196,7 @@ message DispatchRequest {
   repeated string embedding_input = 8;             // kind=EMBEDDING
   google.protobuf.Timestamp deadline = 9;
   bytes signature = 10;
+  flock.types.v1.DecisionInput decision = 11;      // kind=DECISION
 }
 
 message CancelRequest {
@@ -191,6 +211,9 @@ message Challenge {
   string model_id = 2;
   string prompt = 3;
   flock.types.v1.GenerationParams params = 4;
+  // Set for a decision model instead of prompt/params: the probe is a fixed
+  // state + questions and the response carries answers, not text.
+  flock.types.v1.DecisionInput decision = 5;
 }
 
 message ModelAssignment {

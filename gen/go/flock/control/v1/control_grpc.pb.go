@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	ControlService_Route_FullMethodName          = "/flock.control.v1.ControlService/Route"
 	ControlService_RouteEmbedding_FullMethodName = "/flock.control.v1.ControlService/RouteEmbedding"
+	ControlService_RouteDecision_FullMethodName  = "/flock.control.v1.ControlService/RouteDecision"
 	ControlService_ListNodes_FullMethodName      = "/flock.control.v1.ControlService/ListNodes"
 	ControlService_FleetStatus_FullMethodName    = "/flock.control.v1.ControlService/FleetStatus"
 	ControlService_ReinstateNode_FullMethodName  = "/flock.control.v1.ControlService/ReinstateNode"
@@ -39,6 +40,8 @@ type ControlServiceClient interface {
 	Route(ctx context.Context, in *RouteRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RouteChunk], error)
 	// RouteEmbedding is the non-streaming embedding path.
 	RouteEmbedding(ctx context.Context, in *RouteEmbeddingRequest, opts ...grpc.CallOption) (*RouteEmbeddingResponse, error)
+	// RouteDecision is the non-streaming typed-decision path (/v1/systemone).
+	RouteDecision(ctx context.Context, in *RouteDecisionRequest, opts ...grpc.CallOption) (*RouteDecisionResponse, error)
 	// ListNodes returns registry + live state for ops tooling and the console.
 	ListNodes(ctx context.Context, in *ListNodesRequest, opts ...grpc.CallOption) (*ListNodesResponse, error)
 	// FleetStatus returns aggregate capacity vs. demand per model.
@@ -90,6 +93,16 @@ func (c *controlServiceClient) RouteEmbedding(ctx context.Context, in *RouteEmbe
 	return out, nil
 }
 
+func (c *controlServiceClient) RouteDecision(ctx context.Context, in *RouteDecisionRequest, opts ...grpc.CallOption) (*RouteDecisionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RouteDecisionResponse)
+	err := c.cc.Invoke(ctx, ControlService_RouteDecision_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *controlServiceClient) ListNodes(ctx context.Context, in *ListNodesRequest, opts ...grpc.CallOption) (*ListNodesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListNodesResponse)
@@ -133,6 +146,8 @@ type ControlServiceServer interface {
 	Route(*RouteRequest, grpc.ServerStreamingServer[RouteChunk]) error
 	// RouteEmbedding is the non-streaming embedding path.
 	RouteEmbedding(context.Context, *RouteEmbeddingRequest) (*RouteEmbeddingResponse, error)
+	// RouteDecision is the non-streaming typed-decision path (/v1/systemone).
+	RouteDecision(context.Context, *RouteDecisionRequest) (*RouteDecisionResponse, error)
 	// ListNodes returns registry + live state for ops tooling and the console.
 	ListNodes(context.Context, *ListNodesRequest) (*ListNodesResponse, error)
 	// FleetStatus returns aggregate capacity vs. demand per model.
@@ -160,6 +175,9 @@ func (UnimplementedControlServiceServer) Route(*RouteRequest, grpc.ServerStreami
 }
 func (UnimplementedControlServiceServer) RouteEmbedding(context.Context, *RouteEmbeddingRequest) (*RouteEmbeddingResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RouteEmbedding not implemented")
+}
+func (UnimplementedControlServiceServer) RouteDecision(context.Context, *RouteDecisionRequest) (*RouteDecisionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RouteDecision not implemented")
 }
 func (UnimplementedControlServiceServer) ListNodes(context.Context, *ListNodesRequest) (*ListNodesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListNodes not implemented")
@@ -216,6 +234,24 @@ func _ControlService_RouteEmbedding_Handler(srv interface{}, ctx context.Context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ControlServiceServer).RouteEmbedding(ctx, req.(*RouteEmbeddingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ControlService_RouteDecision_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RouteDecisionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ControlServiceServer).RouteDecision(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ControlService_RouteDecision_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControlServiceServer).RouteDecision(ctx, req.(*RouteDecisionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -284,6 +320,10 @@ var ControlService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RouteEmbedding",
 			Handler:    _ControlService_RouteEmbedding_Handler,
+		},
+		{
+			MethodName: "RouteDecision",
+			Handler:    _ControlService_RouteDecision_Handler,
 		},
 		{
 			MethodName: "ListNodes",
