@@ -57,6 +57,21 @@ Request, exactly TypeSafe's shape:
   the catalog).
 - Unknown top-level fields are ignored, like the chat endpoints do.
 
+Validation details both surfaces implement identically (amended 2026-10-03
+from flockd#53's reference implementation, `flockd/internal/decision`):
+a body that is not a JSON object is `400`, every other failure `422`; any
+non-null `images` is rejected, including `[]`; `null` is a valid
+description only for `choice` options (score levels and noul `true`/`false`
+must be string/object/array); duplicate or empty question ids and option
+keys are rejected; `state` must be present but may be an empty string;
+noul `criteria` may list `true` and `false` in either order and that order
+is kept. Upstream llama-server is laxer on all of these; we are strict so
+the contract does not depend on a runtime's leniency.
+
+The daemon's local API differs from the gateway only where the surface
+does: no `401`/`429`, and "node not serving" is `503` (the local
+convention) rather than `529`.
+
 Response:
 
 ```json
@@ -115,14 +130,22 @@ the same body per line.
   `questions` and `criteria` objects in list order, POSTs it to the
   runtime's `/v1/systemone`, and maps the JSON answer onto `DecisionAnswer`
   in question order. Runtime `400` -> `invalid_input`; `501` (not a
-  decision model) and anything else -> `error`.
+  decision model) and anything else -> `error`. One exception: llama-server
+  checks the batch before the context, so an over-long prompt on a
+  whole-prompt-batch model is a `500` "too large to process"; the adapter
+  maps that specific reply to `invalid_input` when it set the batch itself.
 - **Usage.** `Usage.prompt_tokens` = llama-server's `usage.input_tokens`;
   `completion_tokens` = 0. The public `usage` uses TypeSafe's names
   (`input_tokens`/`output_tokens`).
 - **Runtime flags.** A `decision` model starts llama-server without
-  `--embeddings`; Laya-family and Clef evaluate the whole prompt in one
-  batch, so the adapter sets `--batch-size` and `--ubatch-size` to the
-  context size. A server running Clef serves only `/v1/systemone`.
+  `--embeddings` (the server enables embedding mode itself).
+  Whole-prompt-batch models (Laya-family including Julia-1, and Clef)
+  evaluate a prompt in one batch, so the adapter sets `--batch-size` and
+  `--ubatch-size` to one slot's context, `ceil(ctx-size / parallel)`: the
+  longest prompt a slot admits. Causal decision models (Kev) take no batch
+  flags. A server running Clef serves only `/v1/systemone`. (Amended
+  2026-10-03 after flockd#53 measured it: total context would have
+  allocated 131,072 for Julia-1 at 16 slots, and Kev needs none.)
 - **Runtime build.** Needs a llama.cpp build with both upstream PRs
   (>= b11382). The runtimes pin moves from b9892; the new
   `runtime_build_id` goes through the staging manifest, and every
