@@ -68,6 +68,21 @@ noul `criteria` may list `true` and `false` in either order and that order
 is kept. Upstream llama-server is laxer on all of these; we are strict so
 the contract does not depend on a runtime's leniency.
 
+Gateway specifics as built (control-plane#46): bodies over 1 MiB are
+`413`; a `422` carries `code: invalid_request` (validation, with `param`
+set to the path) or `code: invalid_input` (the runtime rejected it; never
+retried, never charged); `529` keeps the existing `model_cold` /
+`model_warming` / `no_capacity` codes with `Retry-After`; an embedding
+model on this endpoint is a `404` naming `/v1/embeddings`. `GET /v1/models`
+carries `"kind": "chat" | "embedding" | "decision"`, and `auto:<class>`
+never resolves to a decision model. The coordinator also filters by daemon
+version at dispatch, not only at placement
+(`coordinator.decision_min_daemon_version`, default v0.7.0). Decision
+fingerprints give a three-way verdict per probability: pass within 0.02,
+ban beyond 0.25, flag in between; the usage bound is per question with a
+4x pass slack, because a runtime re-reads the state per question and per
+option-order variant.
+
 The daemon's local API differs from the gateway only where the surface
 does: no `401`/`429`, and "node not serving" is `503` (the local
 convention) rather than `529`.
