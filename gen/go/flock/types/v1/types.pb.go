@@ -1400,7 +1400,18 @@ type ModelState struct {
 	LoadedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=loaded_at,json=loadedAt,proto3" json:"loaded_at,omitempty"`
 	// Who installed it: "operator" (via app/CLI/config) or "mesh"
 	// (coordinator placement). The mesh only evicts its own.
-	Origin        string `protobuf:"bytes,4,opt,name=origin,proto3" json:"origin,omitempty"`
+	Origin string `protobuf:"bytes,4,opt,name=origin,proto3" json:"origin,omitempty"`
+	// Why the model is in this state, for the operator (design note
+	// 2026-11-01). For "declined" and "failed" it is the daemon's own
+	// reason: the policy that refused the placement ("model is in
+	// models.exclude", "model not in this node's catalog", "does not fit in
+	// max_disk_mb") or the error that broke it. For "assigned" and
+	// "downloading" (and the "cached" that ends a stage) it echoes the
+	// PlacementReason the coordinator sent with the assignment as its short
+	// name ("floor", "demand", "warm", "stage"), so the coordinator's views
+	// and the node agree on why the model is there. Empty from daemons that
+	// predate the field; the coordinator then records only the state.
+	Reason        string `protobuf:"bytes,5,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1459,6 +1470,13 @@ func (x *ModelState) GetLoadedAt() *timestamppb.Timestamp {
 func (x *ModelState) GetOrigin() string {
 	if x != nil {
 		return x.Origin
+	}
+	return ""
+}
+
+func (x *ModelState) GetReason() string {
+	if x != nil {
+		return x.Reason
 	}
 	return ""
 }
@@ -1565,13 +1583,14 @@ const file_flock_types_v1_types_proto_rawDesc = "" +
 	"confidence\"Y\n" +
 	"\x05Usage\x12#\n" +
 	"\rprompt_tokens\x18\x01 \x01(\rR\fpromptTokens\x12+\n" +
-	"\x11completion_tokens\x18\x02 \x01(\rR\x10completionTokens\"\x8e\x01\n" +
+	"\x11completion_tokens\x18\x02 \x01(\rR\x10completionTokens\"\xa6\x01\n" +
 	"\n" +
 	"ModelState\x12\x19\n" +
 	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x127\n" +
 	"\tloaded_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\bloadedAt\x12\x16\n" +
-	"\x06origin\x18\x04 \x01(\tR\x06origin*\x96\x01\n" +
+	"\x06origin\x18\x04 \x01(\tR\x06origin\x12\x16\n" +
+	"\x06reason\x18\x05 \x01(\tR\x06reason*\x96\x01\n" +
 	"\vRequestKind\x12\x1c\n" +
 	"\x18REQUEST_KIND_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11REQUEST_KIND_CHAT\x10\x01\x12\x1b\n" +

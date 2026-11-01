@@ -236,4 +236,15 @@ message ModelState {
   // Who installed it: "operator" (via app/CLI/config) or "mesh"
   // (coordinator placement). The mesh only evicts its own.
   string origin = 4;
+  // Why the model is in this state, for the operator (design note
+  // 2026-11-01). For "declined" and "failed" it is the daemon's own
+  // reason: the policy that refused the placement ("model is in
+  // models.exclude", "model not in this node's catalog", "does not fit in
+  // max_disk_mb") or the error that broke it. For "assigned" and
+  // "downloading" (and the "cached" that ends a stage) it echoes the
+  // PlacementReason the coordinator sent with the assignment as its short
+  // name ("floor", "demand", "warm", "stage"), so the coordinator's views
+  // and the node agree on why the model is there. Empty from daemons that
+  // predate the field; the coordinator then records only the state.
+  string reason = 5;
 }

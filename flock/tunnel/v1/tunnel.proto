@@ -63,6 +63,7 @@ message NodeMessage {
     Goodbye goodbye = 7;
     EmbeddingResult embedding_result = 8;
     DecisionResult decision_result = 9;
+    BudgetUpdate budget_update = 10;
   }
 }
 
@@ -153,6 +154,17 @@ message ModelStateUpdate {
   flock.types.v1.ModelState model = 1;
 }
 
+// BudgetUpdate replaces the ResourceBudget the session's Hello carried.
+// The daemon sends it when the operator changes a budget setting live
+// (max_disk_mb, max_ram_mb, the serve policy, the slot ceiling) so the
+// coordinator's capacity view follows the app without a reconnect; the
+// whole budget travels, never a delta. Coordinators that predate it drop
+// the unknown oneof member and keep the Hello budget until the next
+// session, which is what happened before (design note 2026-11-01).
+message BudgetUpdate {
+  flock.types.v1.ResourceBudget budget = 1;
+}
+
 // Goodbye is a graceful GOAWAY: the node is shutting down or yielding for an
 // extended period; the coordinator reroutes immediately.
 message Goodbye {
@@ -216,6 +228,36 @@ message Challenge {
   flock.types.v1.DecisionInput decision = 5;
 }
 
+// PlacementReason is why the coordinator asked a node for a model: which
+// part of placement (SPEC §4.4) produced the entry. It travels with the
+// ModelAssignment so the node can tell its operator "placed by the mesh
+// floor" from "requested by a customer", and the node echoes it back as
+// ModelState.reason while the placement is in flight (design note
+// 2026-11-01).
+enum PlacementReason {
+  PLACEMENT_REASON_UNSPECIFIED = 0;
+  // The floor pass: the catalog's default quant of each model line (or
+  // the admin's floor list) keeps a baseline replica somewhere on the
+  // fleet, so the catalog page is honest and a first request is never a
+  // cold start.
+  PLACEMENT_REASON_FLOOR = 1;
+  // The demand pass: customers are requesting the model and its replica
+  // target rose above what the fleet holds.
+  PLACEMENT_REASON_DEMAND = 2;
+  // Warm-on-request: a customer's request found no node holding the
+  // model and placement ran for that one model right away.
+  PLACEMENT_REASON_WARM = 3;
+  // The floor pass staged it (ModelAssignment.stage): download only, held
+  // cached so a later assign is a load rather than a download.
+  PLACEMENT_REASON_STAGE = 4;
+}
+
+// Placement is the reason for one model in a ModelAssignment.
+message Placement {
+  string model_id = 1;
+  PlacementReason reason = 2;
+}
+
 message ModelAssignment {
   // Download if needed, load, report ready.
   repeated flock.types.v1.ModelSpec assign = 1;
@@ -224,6 +266,12 @@ message ModelAssignment {
   // pass to stage models that fit on disk but not in memory right now, so
   // a later assign is a load, not a download.
   repeated flock.types.v1.ModelSpec stage = 3;
+  // Why each model in assign and stage is being asked for, keyed by model
+  // id (one entry per model; a model with no entry has no known reason).
+  // A daemon that predates the field ignores it; the coordinator gates on
+  // CapabilityProfile.daemon_version and sends it only to daemons that
+  // can show it (flockd v0.9.0+), like ModelSpec.parts.
+  repeated Placement placements = 4;
 }
 
 message ConfigUpdate {
